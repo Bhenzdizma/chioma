@@ -30,6 +30,8 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { ReferralService } from '../referral/referral.service';
 import { LoggerService } from '../../common/services/logger.service';
 import { LockService } from '../../common/lock';
+import { REDIS_CLIENT } from '../../common/lock/redis-client.token';
+import { CompleteProfileDto } from './dto/complete-profile.dto';
 
 describe('AuthService', () => {
   let service: AuthService;

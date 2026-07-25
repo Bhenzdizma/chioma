@@ -36,7 +36,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<AuthenticatedRequest>();
 
-    const { status, body } = this.resolve(exception, request);
+    const { status, body, retryAfter } = this.resolve(exception, request);
+
+    if (retryAfter !== undefined) {
+      response.setHeader('Retry-After', String(retryAfter));
+    }
 
     // Log error with request context
     const requestId =
@@ -80,6 +84,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
   ): {
     status: number;
     body: ErrorResponseDto;
+    retryAfter?: number;
   } {
     const requestId =
       request.requestId ?? (request.headers['x-request-id'] as string);
@@ -102,14 +107,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
         code: exception.code,
       } as ErrorResponseDto;
 
-      // Add retryAfter for rate limit errors
-      if (exception instanceof RateLimitError && exception.retryAfter) {
-        body.retryAfter = exception.retryAfter;
-      }
-
       return {
         status: exception.statusCode,
         body,
+        // Rate limit retry timing goes on the Retry-After header, not the
+        // JSON body, to avoid leaking rate-limit timing info to attackers.
+        retryAfter:
+          exception instanceof RateLimitError && exception.retryAfter
+            ? exception.retryAfter
+            : undefined,
       };
     }
 
@@ -134,8 +140,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
             message,
             error: 'Too Many Requests',
             code: ErrorCode.RATE_LIMIT_EXCEEDED,
-            retryAfter: 60,
           } as ErrorResponseDto,
+          retryAfter: 60,
         };
       }
 

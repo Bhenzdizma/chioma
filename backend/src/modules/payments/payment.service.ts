@@ -24,6 +24,7 @@ import {
   encryptMetadata,
   ensureUserId,
   getIdempotencyKey,
+  PAYMENT_STATUS_MAP,
 } from './payment.helpers';
 import { runBatch, BatchResult } from '../../common/utils/batch.utils';
 import { PaymentProcessingService } from '../stellar/services/payment-processing.service';
@@ -871,15 +872,7 @@ export class PaymentService {
       return null;
     }
 
-    const statusMap: Record<string, PaymentStatus> = {
-      active: PaymentStatus.PENDING,
-      released: PaymentStatus.COMPLETED,
-      refunded: PaymentStatus.REFUNDED,
-      failed: PaymentStatus.FAILED,
-      expired: PaymentStatus.FAILED,
-    };
-
-    payment.status = statusMap[status] ?? PaymentStatus.PENDING;
+    payment.status = PAYMENT_STATUS_MAP[status] ?? PaymentStatus.PENDING;
     payment.metadata = {
       ...(payment.metadata ?? {}),
       ...metadata,

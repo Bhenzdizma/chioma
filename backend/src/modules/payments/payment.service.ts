@@ -741,6 +741,7 @@ export class PaymentService {
     };
   }
 
+  async handlePaymentGatewayWebhook(dto: PaymentGatewayWebhookDto) {
   async handlePaymentGatewayWebhook(
     dto: PaymentGatewayWebhookDto,
     secretHeader?: string,

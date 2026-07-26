@@ -1,4 +1,9 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import {
+  Module,
+  MiddlewareConsumer,
+  NestModule,
+  forwardRef,
+} from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -23,6 +28,7 @@ import { StorageModule } from '../storage/storage.module';
   imports: [
     HttpModule,
     ScheduleModule.forRoot(),
+    forwardRef(() => NotificationsModule),
     NotificationsModule,
     StorageModule,
     TypeOrmModule.forFeature([]),

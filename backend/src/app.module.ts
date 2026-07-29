@@ -72,6 +72,7 @@ import { ResponseTimeInterceptor } from './common/interceptors/response-time.int
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { DeprecationInterceptor } from './common/interceptors/deprecation.interceptor';
 import { createDatabaseConnectionOptions } from './database/database-config';
+import { FavoritesModule } from './modules/favorites/favorites.module';
 
 const appLogger = new Logger('AppModule');
 
@@ -248,6 +249,7 @@ const appLogger = new Logger('AppModule');
     CleanupModule,
     AiModule,
     FraudModule,
+    FavoritesModule,
     WebhooksModule,
     ScreeningModule,
     ReferralModule,

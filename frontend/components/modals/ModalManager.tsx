@@ -13,16 +13,24 @@ import dynamic from 'next/dynamic';
 
 // Dynamically import all modals to keep them out of the initial bundle load
 const PropertyDetailModal = dynamic(
-  () => import('./PropertyDetailModal').then((m) => m.PropertyDetailModal),
+  () =>
+    import('@/components/properties/PropertyDetailModal').then(
+      (m) => m.PropertyDetailModal,
+    ),
   { ssr: false },
 );
 const PropertyInquiryModal = dynamic(
-  () => import('./PropertyInquiryModal').then((m) => m.PropertyInquiryModal),
+  () =>
+    import('@/components/properties/PropertyInquiryModal').then(
+      (m) => m.PropertyInquiryModal,
+    ),
   { ssr: false },
 );
 const PropertyAgreementModal = dynamic(
   () =>
-    import('./PropertyAgreementModal').then((m) => m.PropertyAgreementModal),
+    import('@/components/properties/PropertyAgreementModal').then(
+      (m) => m.PropertyAgreementModal,
+    ),
   { ssr: false },
 );
 const AgreementViewModal = dynamic(
@@ -55,7 +63,8 @@ const EvidenceUploadModal = dynamic(
   { ssr: false },
 );
 const PaymentModal = dynamic(
-  () => import('./PaymentModal').then((m) => m.PaymentModal),
+  () =>
+    import('@/components/payments/PaymentModal').then((m) => m.PaymentModal),
   { ssr: false },
 );
 const RefundModal = dynamic(

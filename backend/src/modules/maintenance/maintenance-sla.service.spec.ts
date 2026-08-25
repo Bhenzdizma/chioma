@@ -1,8 +1,5 @@
 import { MaintenanceSlaService } from './maintenance-sla.service';
-import {
-  MaintenanceStatus,
-  SlaEscalationTier,
-} from './maintenance-request.entity';
+import { MaintenanceStatus, SlaEscalationTier } from './maintenance-request.entity';
 
 describe('MaintenanceSlaService', () => {
   const maintenanceRepo = {
@@ -66,9 +63,7 @@ describe('MaintenanceSlaService', () => {
         'maintenance_sla',
       );
       expect(maintenanceRepo.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          slaEscalationTier: SlaEscalationTier.LANDLORD,
-        }),
+        expect.objectContaining({ slaEscalationTier: SlaEscalationTier.LANDLORD }),
       );
     });
 

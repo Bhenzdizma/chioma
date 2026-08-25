@@ -55,8 +55,7 @@ export function resolveSlaWindow(
   config?: SlaConfigSource,
 ): SlaWindow {
   const normalized = normalizePriority(priority);
-  const defaults =
-    DEFAULT_SLA_WINDOWS[normalized] ?? DEFAULT_SLA_WINDOWS.MEDIUM;
+  const defaults = DEFAULT_SLA_WINDOWS[normalized] ?? DEFAULT_SLA_WINDOWS.MEDIUM;
 
   return {
     responseHours: readHours(

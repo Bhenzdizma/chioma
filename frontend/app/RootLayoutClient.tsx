@@ -16,6 +16,7 @@ import { ToastProvider } from '@/components/ui';
 import { RouteAnnouncer } from '@/components/accessibility/RouteAnnouncer';
 import { WebVitalsReporter } from '@/components/web-vitals';
 import { OrientationHandler } from '@/components/orientation/OrientationHandler';
+import { ConnectionStatusBanner } from '@/components/connection-status/ConnectionStatusBanner';
 import { HtmlAttributesSync } from '@/components/i18n';
 
 export function RootLayoutClient({
@@ -37,6 +38,7 @@ export function RootLayoutClient({
             <PwaController />
             <OrientationHandler />
             <NetworkStatusBanner />
+            <ConnectionStatusBanner />
             <RateLimitNotifier />
             <RouteAnnouncer />
 

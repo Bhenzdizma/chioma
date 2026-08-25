@@ -105,10 +105,7 @@ describe('RentService', () => {
     it('prorates rent for a move-in mid-month in a 31-day month', () => {
       // January has 31 days; moving in on the 15th leaves 17 remaining days
       // (31 - 15 + 1 = 17). dailyRate = 1500/31; prorated = dailyRate * 17
-      const result = service.calculateProratedRent(
-        1500,
-        new Date(2026, 0, 15),
-      );
+      const result = service.calculateProratedRent(1500, new Date(2026, 0, 15));
       const expected = Math.round((1500 / 31) * 17 * 100) / 100;
       expect(result).toBe(expected);
     });
@@ -120,10 +117,7 @@ describe('RentService', () => {
 
     it('handles February in a non-leap year (28 days)', () => {
       // 2026 is not a leap year
-      const result = service.calculateProratedRent(
-        2800,
-        new Date(2026, 1, 28),
-      );
+      const result = service.calculateProratedRent(2800, new Date(2026, 1, 28));
       // Last day of the month: remainingDays = 1
       const expected = Math.round((2800 / 28) * 1 * 100) / 100;
       expect(result).toBe(expected);
@@ -131,20 +125,14 @@ describe('RentService', () => {
 
     it('handles February in a leap year (29 days)', () => {
       // 2028 is a leap year
-      const result = service.calculateProratedRent(
-        2900,
-        new Date(2028, 1, 29),
-      );
+      const result = service.calculateProratedRent(2900, new Date(2028, 1, 29));
       const expected = Math.round((2900 / 29) * 1 * 100) / 100;
       expect(result).toBe(expected);
     });
 
     it('handles a move-in on the last day of a 30-day month', () => {
       // April has 30 days
-      const result = service.calculateProratedRent(
-        3000,
-        new Date(2026, 3, 30),
-      );
+      const result = service.calculateProratedRent(3000, new Date(2026, 3, 30));
       const expected = Math.round((3000 / 30) * 1 * 100) / 100;
       expect(result).toBe(expected);
     });

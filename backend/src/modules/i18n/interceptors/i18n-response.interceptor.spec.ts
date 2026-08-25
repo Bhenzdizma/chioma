@@ -12,9 +12,7 @@ describe('I18nResponseInterceptor', () => {
       providers: [I18nResponseInterceptor, I18nService],
     }).compile();
 
-    interceptor = module.get<I18nResponseInterceptor>(
-      I18nResponseInterceptor,
-    );
+    interceptor = module.get<I18nResponseInterceptor>(I18nResponseInterceptor);
   });
 
   function buildContext(locale?: string): ExecutionContext {

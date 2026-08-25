@@ -32,14 +32,20 @@ export const DOCUMENT_SEARCH_SORT_FIELDS = [
 ] as const;
 
 export class SearchDocumentsDto {
-  @ApiPropertyOptional({ description: 'Full-text search query', maxLength: 200 })
+  @ApiPropertyOptional({
+    description: 'Full-text search query',
+    maxLength: 200,
+  })
   @IsOptional()
   @Transform(({ value }) => sanitizeString(value))
   @IsString()
   @MaxLength(200)
   q?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by agreement status', enum: AgreementStatus })
+  @ApiPropertyOptional({
+    description: 'Filter by agreement status',
+    enum: AgreementStatus,
+  })
   @IsOptional()
   @IsEnum(AgreementStatus)
   status?: AgreementStatus;

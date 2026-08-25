@@ -38,7 +38,10 @@ export const USER_SEARCH_SORT_FIELDS = [
 ] as const;
 
 export class SearchUsersDto {
-  @ApiPropertyOptional({ description: 'Full-text search query', maxLength: 200 })
+  @ApiPropertyOptional({
+    description: 'Full-text search query',
+    maxLength: 200,
+  })
   @IsOptional()
   @Transform(({ value }) => sanitizeString(value))
   @IsString()

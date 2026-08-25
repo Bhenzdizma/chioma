@@ -77,11 +77,7 @@ export class SearchController {
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
     };
-    return this.searchService.searchDocuments(
-      filters,
-      query.page,
-      query.limit,
-    );
+    return this.searchService.searchDocuments(filters, query.page, query.limit);
   }
 
   @Get('suggest')

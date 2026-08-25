@@ -78,9 +78,9 @@ describe('TransactionService', () => {
     it('logs without throwing when an idempotency key is supplied', async () => {
       const callback = jest.fn().mockResolvedValue('ok');
 
-      await expect(
-        service.execute(callback, 'idempotent-key'),
-      ).resolves.toBe('ok');
+      await expect(service.execute(callback, 'idempotent-key')).resolves.toBe(
+        'ok',
+      );
     });
   });
 
@@ -119,7 +119,9 @@ describe('TransactionService', () => {
     });
 
     it('does not retry a non-transient error and rejects immediately', async () => {
-      const callback = jest.fn().mockRejectedValue(new Error('validation failed'));
+      const callback = jest
+        .fn()
+        .mockRejectedValue(new Error('validation failed'));
 
       await expect(service.executeWithRetry(callback, 3)).rejects.toThrow(
         'validation failed',

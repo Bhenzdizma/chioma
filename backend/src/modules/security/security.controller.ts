@@ -113,10 +113,7 @@ export class SecurityController {
   @ApiOperation({ summary: 'Get recent security events' })
   @ApiResponse({ status: 200, description: 'Security events retrieved' })
   async getSecurityEvents(@Query() query: QuerySecurityEventsDto) {
-    return this.securityEventsService.getRecentEvents(
-      query.hours,
-      query.limit,
-    );
+    return this.securityEventsService.getRecentEvents(query.hours, query.limit);
   }
 
   @Get('security/events/user/:userId')

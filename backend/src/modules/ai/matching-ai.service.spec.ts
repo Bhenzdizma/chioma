@@ -112,7 +112,11 @@ describe('MatchingAiService', () => {
       expect(result[0].propertyId).toBe('prop-1');
       expect(result[0].score).toBeGreaterThan(0);
       expect(result[0].reasons).toEqual(
-        expect.arrayContaining(['city_match', 'within_budget', 'bedroom_match']),
+        expect.arrayContaining([
+          'city_match',
+          'within_budget',
+          'bedroom_match',
+        ]),
       );
     });
 

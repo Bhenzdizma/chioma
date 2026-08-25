@@ -115,9 +115,9 @@ describe('RentReminderService', () => {
         1500,
       );
 
-      expect(created.map((r) => r.daysBefore).sort((a, b) => a! - b!)).toEqual(
-        [-1, 0, 1, 3, 7],
-      );
+      expect(created.map((r) => r.daysBefore).sort((a, b) => a! - b!)).toEqual([
+        -1, 0, 1, 3, 7,
+      ]);
     });
   });
 
@@ -256,9 +256,7 @@ describe('RentReminderService', () => {
       );
       reminderRepository.save.mockResolvedValue(reminder);
 
-      await expect(service.sendReminder(reminder)).rejects.toThrow(
-        'SMTP down',
-      );
+      await expect(service.sendReminder(reminder)).rejects.toThrow('SMTP down');
 
       expect(reminder.status).toBe(ReminderStatus.FAILED);
       expect(reminder.errorMessage).toBe('SMTP down');

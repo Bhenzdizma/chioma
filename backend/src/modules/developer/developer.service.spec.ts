@@ -305,8 +305,7 @@ describe('DeveloperService', () => {
       const savedOldKey = mockApiKeyRepo.save.mock.calls[1][0] as ApiKey;
       expect(savedOldKey.status).toBe(ApiKeyStatus.ACTIVE);
       expect(savedOldKey.rotatedAt).toBeInstanceOf(Date);
-      const overlapMs =
-        new Date(savedOldKey.expiresAt!).getTime() - Date.now();
+      const overlapMs = new Date(savedOldKey.expiresAt!).getTime() - Date.now();
       expect(overlapMs).toBeGreaterThan(6 * 24 * 60 * 60 * 1000);
       expect(overlapMs).toBeLessThanOrEqual(7 * 24 * 60 * 60 * 1000);
     });

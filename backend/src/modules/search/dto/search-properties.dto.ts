@@ -64,12 +64,18 @@ export class SearchPropertiesDto {
   @MaxLength(100)
   country?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by property type', enum: PropertyType })
+  @ApiPropertyOptional({
+    description: 'Filter by property type',
+    enum: PropertyType,
+  })
   @IsOptional()
   @IsEnum(PropertyType)
   type?: PropertyType;
 
-  @ApiPropertyOptional({ description: 'Filter by listing status', enum: ListingStatus })
+  @ApiPropertyOptional({
+    description: 'Filter by listing status',
+    enum: ListingStatus,
+  })
   @IsOptional()
   @IsEnum(ListingStatus)
   status?: ListingStatus;
@@ -134,7 +140,11 @@ export class SearchPropertiesDto {
   @MaxLength(100, { each: true })
   amenities?: string[];
 
-  @ApiPropertyOptional({ description: 'Latitude for proximity search', minimum: -90, maximum: 90 })
+  @ApiPropertyOptional({
+    description: 'Latitude for proximity search',
+    minimum: -90,
+    maximum: 90,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -142,7 +152,11 @@ export class SearchPropertiesDto {
   @Max(90)
   lat?: number;
 
-  @ApiPropertyOptional({ description: 'Longitude for proximity search', minimum: -180, maximum: 180 })
+  @ApiPropertyOptional({
+    description: 'Longitude for proximity search',
+    minimum: -180,
+    maximum: 180,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -150,7 +164,11 @@ export class SearchPropertiesDto {
   @Max(180)
   lng?: number;
 
-  @ApiPropertyOptional({ description: 'Search radius in kilometres', minimum: 0.1, maximum: 500 })
+  @ApiPropertyOptional({
+    description: 'Search radius in kilometres',
+    minimum: 0.1,
+    maximum: 500,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()

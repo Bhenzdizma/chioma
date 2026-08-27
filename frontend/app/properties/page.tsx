@@ -2,18 +2,17 @@
 
 export const dynamic = 'force-dynamic';
 
-import nextDynamic from 'next/dynamic';
 import Footer from '@/components/landing/Footer';
 import Navbar from '@/components/Navbar';
 import PropertyCardSkeleton from '@/components/properties/PropertyCardSkeleton';
 import PropertyCard from '@/components/properties/PropertyCard';
 import { PropertyListingHeader } from '@/components/properties/PropertyListingHeader';
+import LazyPropertyMapView from '@/components/properties/LazyPropertyMapView';
 import { VirtualGrid } from '@/components/ui/VirtualGrid';
 import { useGridColumns } from '@/hooks/use-grid-columns';
 import { Filter, Bell, List, Map, ChevronLeft } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Spinner } from '@/components/loading';
 import {
   useInfiniteProperties,
   type PropertyListParams,
@@ -28,19 +27,6 @@ const ROW_HEIGHT_BY_COLUMNS: Record<number, number> = {
   2: 600,
   4: 560,
 };
-
-const PropertyMapView = nextDynamic(
-  () => import('@/components/properties/PropertyMapView'),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-100 text-gray-600">
-        <Spinner size="lg" label="Loading map" />
-        <span className="text-sm">Loading map…</span>
-      </div>
-    ),
-  },
-);
 
 type ViewMode = 'split' | 'list' | 'map';
 
@@ -572,16 +558,18 @@ export default function PropertyListing() {
             </div>
 
             <div className="h-full w-full">
-              <PropertyMapView
-                properties={allProperties.map(toPropertyCardShape)}
-                onBoundsChange={handleBoundsChange}
-                searchAsIMove={searchAsIMove}
-                initialViewState={{
-                  longitude: 0,
-                  latitude: 20,
-                  zoom: 2,
-                }}
-              />
+              {!isMapCollapsed && (
+                <LazyPropertyMapView
+                  properties={allProperties.map(toPropertyCardShape)}
+                  onBoundsChange={handleBoundsChange}
+                  searchAsIMove={searchAsIMove}
+                  initialViewState={{
+                    longitude: 0,
+                    latitude: 20,
+                    zoom: 2,
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>

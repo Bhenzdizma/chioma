@@ -11,9 +11,8 @@ const bundleAnalyzer = withBundleAnalyzer({
 });
 
 const nextConfig: NextConfig = {
-  // Using webpack for better compatibility
   turbopack: {
-    root: process.cwd(), // Fix workspace root warning
+    root: process.cwd(),
   },
   // The visual regression suite (`playwright.config.ts`) drives `next dev`
   // via 127.0.0.1 rather than localhost.
@@ -135,6 +134,7 @@ const nextConfig: NextConfig = {
       'framer-motion',
     ],
   },
+  // Webpack fallback for client-side builds (not used by Turbopack)
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

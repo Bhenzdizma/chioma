@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
 import { requestContext } from '../../../common/request-context/request-context';
+import { AnalyticsJobData } from '../processors/analytics.processor';
 
 export interface JobData {
   correlationId?: string;
@@ -30,11 +31,15 @@ export class QueueManagementService {
     @InjectQueue('documents') private documentsQueue: Queue,
     @InjectQueue('blockchain') private blockchainQueue: Queue,
     @InjectQueue('data-sync') private dataSyncQueue: Queue,
+    @InjectQueue('analytics') private analyticsQueue: Queue,
   ) {}
 
-  private enrichJobData<T extends Record<string, any>>(data: T): T & { correlationId?: string; requestId?: string } {
+  private enrichJobData<T extends Record<string, any>>(
+    data: T,
+  ): T & { correlationId?: string; requestId?: string } {
     const ctx = requestContext.get();
-    const correlationId = data.correlationId || ctx?.correlationId || ctx?.requestId;
+    const correlationId =
+      data.correlationId || ctx?.correlationId || ctx?.requestId;
     const requestId = data.requestId || ctx?.requestId || correlationId;
     return {
       ...(correlationId ? { correlationId } : {}),
@@ -127,6 +132,29 @@ export class QueueManagementService {
   }
 
   /**
+   * Add analytics tracking job to queue
+   */
+  async addAnalyticsJob(
+    data: AnalyticsJobData,
+    options?: QueueJobOptions,
+  ): Promise<Job> {
+    const defaultOptions = {
+      attempts: 3,
+      backoff: {
+        type: 'exponential' as const,
+        delay: 2000,
+      },
+      removeOnComplete: true,
+      removeOnFail: false,
+      ...options,
+    };
+
+    const enrichedData = this.enrichJobData(data);
+    this.logger.debug(`Adding analytics job: ${JSON.stringify(enrichedData)}`);
+    return this.analyticsQueue.add(enrichedData, defaultOptions);
+  }
+
+  /**
    * Get queue statistics
    */
   async getQueueStats(queueName: string): Promise<any> {
@@ -148,7 +176,13 @@ export class QueueManagementService {
    * Get all queue statistics
    */
   async getAllQueueStats(): Promise<any[]> {
-    const queues = ['email', 'documents', 'blockchain', 'data-sync'];
+    const queues = [
+      'email',
+      'documents',
+      'blockchain',
+      'data-sync',
+      'analytics',
+    ];
     return Promise.all(queues.map((q) => this.getQueueStats(q)));
   }
 
@@ -240,7 +274,7 @@ export class QueueManagementService {
       maxAttempts: job.opts.attempts,
       failedReason: job.failedReason,
       stacktrace: job.stacktrace,
-      createdAt: (job as any).createdTimestamp || (job as any).timestamp,
+      createdAt: job.timestamp,
       finishedAt: job.finishedOn,
     };
   }
@@ -255,6 +289,8 @@ export class QueueManagementService {
         return this.blockchainQueue;
       case 'data-sync':
         return this.dataSyncQueue;
+      case 'analytics':
+        return this.analyticsQueue;
       default:
         throw new Error(`Unknown queue: ${queueName}`);
     }

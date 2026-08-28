@@ -422,7 +422,11 @@ impl TokenizedRentObligationContract {
     /// # Errors
     /// * `AdminNotSet` - If no admin has been initialized yet
     /// * `Unauthorized` - If the caller is not the current admin
-    pub fn update_admin(env: Env, caller: Address, new_admin: Address) -> Result<(), ObligationError> {
+    pub fn update_admin(
+        env: Env,
+        caller: Address,
+        new_admin: Address,
+    ) -> Result<(), ObligationError> {
         AccessControl::is_admin(&env, &caller)?;
 
         caller.require_auth();

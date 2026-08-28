@@ -117,6 +117,7 @@ jobs:
           DB_USERNAME: postgres
           DB_PASSWORD: password
           DB_NAME: chioma_db
+          DB_ENCRYPTION_KEY: ci-test-only-encryption-key-not-a-real-secret
 
       - name: Verify entities match the migrated schema
         run: pnpm run migration:schema-check
@@ -126,6 +127,7 @@ jobs:
           DB_USERNAME: postgres
           DB_PASSWORD: password
           DB_NAME: chioma_db
+          DB_ENCRYPTION_KEY: ci-test-only-encryption-key-not-a-real-secret
 
   build:
     name: Build

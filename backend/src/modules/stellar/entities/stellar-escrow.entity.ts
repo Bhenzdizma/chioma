@@ -90,7 +90,7 @@ export class StellarEscrow {
   })
   refundedAmount: string;
 
-  @Column({ name: 'asset_type', length: 16 })
+  @Column({ name: 'asset_type', type: 'varchar', length: 16 })
   assetType: AssetType;
 
   @Column({ name: 'asset_code', type: 'varchar', length: 12, nullable: true })

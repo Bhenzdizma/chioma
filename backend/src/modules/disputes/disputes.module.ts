@@ -15,6 +15,7 @@ import { Payment as GeneralPayment } from '../payments/entities/payment.entity';
 import { Payment as RentPayment } from '../rent/entities/payment.entity';
 import { AuditModule } from '../audit/audit.module';
 import { StellarModule } from '../stellar/stellar.module';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { StellarModule } from '../stellar/stellar.module';
     ]),
     AuditModule,
     StellarModule,
+    StorageModule,
   ],
   controllers: [DisputesController, AdminDisputesController],
   providers: [DisputesService, DisputeBlockchainService],

@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+
+jest.mock('fs/promises', () => ({
+  readFile: jest.fn().mockResolvedValue(Buffer.from('mock file contents')),
+}));
 import {} from '@nestjs/common';
 import {
   AuthorizationError,
@@ -24,11 +28,14 @@ import { User, UserRole } from '../../users/entities/user.entity';
 import { AuditService } from '../../audit/audit.service';
 import { LockService } from '../../../common/lock';
 import { IdempotencyService } from '../../../common/idempotency';
+import { MalwareScanService } from '../../storage/malware-scan.service';
 import { ResolveDisputeDto } from '../dto/resolve-dispute.dto';
 import { AddCommentDto } from '../dto/add-comment.dto';
 
 describe('DisputesService — resolution, evidence, comments, agreements', () => {
   let service: DisputesService;
+  let malwareScan: { scan: jest.Mock };
+  let auditService: { log: jest.Mock };
 
   const adminUser: User = {
     id: 'admin-1',
@@ -168,10 +175,16 @@ describe('DisputesService — resolution, evidence, comments, agreements', () =>
             ),
           },
         },
+        {
+          provide: MalwareScanService,
+          useValue: { scan: jest.fn().mockResolvedValue({ clean: true }) },
+        },
       ],
     }).compile();
 
     service = module.get<DisputesService>(DisputesService);
+    malwareScan = module.get(MalwareScanService);
+    auditService = module.get(AuditService);
     jest.clearAllMocks();
     // Reset shared query runner mocks
     mockQueryRunner.manager.findOne.mockReset();
@@ -360,6 +373,40 @@ describe('DisputesService — resolution, evidence, comments, agreements', () =>
       );
 
       expect(result.description).toBe('Invoice copy');
+    });
+
+    it('quarantines and audit-logs evidence that fails the malware scan, and rejects it', async () => {
+      jest.spyOn(service, 'findByDisputeId').mockResolvedValue(openDispute);
+      jest
+        .spyOn(service as any, 'checkDisputePermission')
+        .mockResolvedValue(undefined);
+      jest.spyOn(service as any, 'validateFile').mockReturnValue(undefined);
+      malwareScan.scan.mockResolvedValueOnce({
+        clean: false,
+        reason: 'eicar_test_signature',
+      });
+      mockEvidenceRepository.create.mockImplementation((value) => value);
+      mockEvidenceRepository.save.mockImplementation(async (value) => ({
+        ...value,
+        id: 11,
+      }));
+
+      await expect(
+        service.addEvidence('dispute-uuid-1', mockFile, 'user-1'),
+      ).rejects.toThrow(AuthorizationError);
+
+      expect(mockEvidenceRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ scanStatus: 'quarantined' }),
+      );
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityType: 'DisputeEvidence',
+          performedBy: 'user-1',
+          metadata: expect.objectContaining({
+            reason: 'eicar_test_signature',
+          }),
+        }),
+      );
     });
   });
 

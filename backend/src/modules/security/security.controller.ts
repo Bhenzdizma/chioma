@@ -9,6 +9,8 @@ import {
   Res,
   UseGuards,
   ParseUUIDPipe,
+  DefaultValuePipe,
+  ParseIntPipe,
   HttpCode,
   HttpStatus,
   UseInterceptors,
@@ -18,6 +20,7 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
+  ApiQuery,
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
@@ -36,14 +39,15 @@ import { AuditLog } from '../audit/decorators/audit-log.decorator';
 import { AuditAction, AuditLevel } from '../audit/entities/audit-log.entity';
 import { AuditLogInterceptor } from '../audit/interceptors/audit-log.interceptor';
 import {
-  QuerySecurityEventsDto,
-  QueryUserSecurityEventsDto,
-  QueryThreatsDto,
   QueryThreatStatsDto,
   QueryComplianceReportDto,
   ResolveIncidentDto,
   AnchorAuditLogsDto,
 } from './dto';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { ApiPaginatedResponse } from '../../common/decorators/api-paginated-response.decorator';
+import { SecurityEvent } from './entities/security-event.entity';
+import { ThreatEvent } from './entities/threat-event.entity';
 
 @ApiTags('Security')
 @Controller()
@@ -113,9 +117,17 @@ export class SecurityController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get recent security events' })
-  @ApiResponse({ status: 200, description: 'Security events retrieved' })
-  async getSecurityEvents(@Query() query: QuerySecurityEventsDto) {
-    return this.securityEventsService.getRecentEvents(query.hours, query.limit);
+  @ApiQuery({ name: 'hours', required: false, type: Number })
+  @ApiPaginatedResponse(SecurityEvent)
+  async getSecurityEvents(
+    @Query('hours', new DefaultValuePipe(24), ParseIntPipe) hours: number,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.securityEventsService.getRecentEvents(
+      hours,
+      query.page,
+      query.limit,
+    );
   }
 
   @ApiResponse({ status: 200, description: 'Retrieved' })
@@ -125,14 +137,15 @@ export class SecurityController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get security events for a specific user' })
   @ApiParam({ name: 'userId', type: String })
+  @ApiPaginatedResponse(SecurityEvent)
   async getUserEvents(
     @Param('userId', ParseUUIDPipe) userId: string,
-    @Query() query: QueryUserSecurityEventsDto,
+    @Query() query: PaginationQueryDto,
   ) {
     return this.securityEventsService.getUserEvents(
       userId,
+      query.page,
       query.limit,
-      query.offset,
     );
   }
 
@@ -156,8 +169,12 @@ export class SecurityController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get recent threat events' })
-  async getThreats(@Query() query: QueryThreatsDto) {
-    return this.threatDetectionService.getRecentThreats(query.limit);
+  @ApiPaginatedResponse(ThreatEvent)
+  async getThreats(@Query() query: PaginationQueryDto) {
+    return this.threatDetectionService.getRecentThreats(
+      query.page,
+      query.limit,
+    );
   }
 
   @ApiResponse({ status: 200, description: 'Retrieved' })
@@ -195,8 +212,8 @@ export class SecurityController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get open security incidents' })
-  async getIncidents() {
-    return this.incidentService.getOpenIncidents();
+  async getIncidents(@Query() query: PaginationQueryDto) {
+    return this.incidentService.getOpenIncidents(query.page, query.limit);
   }
 
   @ApiResponse({ status: 200, description: 'Retrieved' })

@@ -29,6 +29,8 @@ import {
   FavoritesQueryDto,
   PaginatedFavoritesDto,
 } from './dtos/favorite.dto';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { ApiPaginatedResponse } from '../../common/decorators/api-paginated-response.decorator';
 
 @ApiTags('favorites')
 @Controller('favorites')

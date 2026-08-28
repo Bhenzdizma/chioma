@@ -19,6 +19,8 @@ import { UserKycStatusService } from '../users/user-kyc-status.service';
 import { KycStatus } from './kyc-status.enum';
 import { NotificationsService } from '../notifications/notifications.service';
 import { User } from '../users/entities/user.entity';
+import { PaginationUtils } from '../../common/utils';
+import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto';
 
 export interface AdminKycUserView {
   id: string;
@@ -41,13 +43,7 @@ export interface AdminKycView {
   documents: [];
 }
 
-export interface PaginatedAdminKycResult {
-  data: AdminKycView[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+export type PaginatedAdminKycResult = PaginatedResponseDto<AdminKycView>;
 
 @Injectable()
 export class KycService {
@@ -307,19 +303,13 @@ export class KycService {
     }
 
     qb.orderBy(`kyc.${sortBy}`, sortOrder)
-      .skip((page - 1) * limit)
+      .skip(PaginationUtils.calculateOffset(page, limit))
       .take(limit);
 
     const [rows, total] = await qb.getManyAndCount();
     const data = await this.toAdminViewList(rows);
 
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.max(Math.ceil(total / limit), 1),
-    };
+    return PaginationUtils.buildPaginationResponse(data, total, page, limit);
   }
 
   private async toAdminViewList(rows: Kyc[]): Promise<AdminKycView[]> {

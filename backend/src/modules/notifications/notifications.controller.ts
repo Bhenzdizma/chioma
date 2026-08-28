@@ -11,6 +11,8 @@ import {
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiPaginatedResponse } from '../../common/decorators/api-paginated-response.decorator';
+import { Notification } from './entities/notification.entity';
 
 interface RequestWithUser extends Request {
   user: {
@@ -27,6 +29,7 @@ export class NotificationsController {
   @ApiResponse({ status: 200, description: 'Retrieved' })
   @ApiOperation({ summary: 'Get notifications' })
   @Get()
+  @ApiPaginatedResponse(Notification)
   async getNotifications(
     @Request() req: RequestWithUser,
     @Query('page') page: string = '1',

@@ -20,6 +20,12 @@ mod tests_errors;
 #[cfg(test)]
 mod tests_rate_limit;
 
+#[cfg(test)]
+mod tests_events;
+
+#[cfg(test)]
+mod tests_storage;
+
 pub use errors::ContractError;
 pub use profile::*;
 pub use types::*;

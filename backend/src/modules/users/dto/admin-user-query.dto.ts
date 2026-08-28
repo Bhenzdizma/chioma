@@ -1,14 +1,7 @@
-import {
-  IsBoolean,
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsString,
-  Max,
-  Min,
-} from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
 
 export enum AdminUserSortField {
   CREATED_AT = 'createdAt',
@@ -18,22 +11,7 @@ export enum AdminUserSortField {
   ROLE = 'role',
 }
 
-export class AdminUserQueryDto {
-  @ApiPropertyOptional({ default: 1 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page?: number = 1;
-
-  @ApiPropertyOptional({ default: 10 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit?: number = 10;
-
+export class AdminUserQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ description: 'Filter by user role' })
   @IsOptional()
   @IsString()

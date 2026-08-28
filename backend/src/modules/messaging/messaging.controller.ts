@@ -17,6 +17,9 @@ import { CreateRoomDto } from './dto/create-room.dto';
 import { UserIdQueryDto } from './dto/user-id-query.dto';
 import { RoomIdParamsDto } from './dto/room-id-params.dto';
 import { PaginationQueryDto } from './dto/pagination.dto';
+import { ApiPaginatedResponse } from '../../common/decorators/api-paginated-response.decorator';
+import { ChatRoom } from './entities/chat-room.entity';
+import { Message } from './entities/message.entity';
 
 @ApiTags('Messaging')
 @Controller('messaging')
@@ -54,8 +57,16 @@ export class MessagingController {
   @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('rooms')
   @ApiOperation({ summary: 'Get all chat rooms for the current user' })
-  async getRooms(@Query() query: UserIdQueryDto) {
-    return this.messagingService.getRoomsForUser(query.userId);
+  @ApiPaginatedResponse(ChatRoom)
+  async getRooms(
+    @Query('userId') userId: string,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.messagingService.getRoomsForUser(
+      userId,
+      query.page ?? 1,
+      query.limit ?? 20,
+    );
   }
 
   @ApiResponse({ status: 201, description: 'Created' })
@@ -74,6 +85,7 @@ export class MessagingController {
   @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('rooms/:roomId/messages')
   @ApiOperation({ summary: 'Get messages for a room' })
+  @ApiPaginatedResponse(Message)
   async getMessages(
     @Param() params: RoomIdParamsDto,
     @Query() pagination: PaginationQueryDto,

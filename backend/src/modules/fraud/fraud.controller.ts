@@ -26,6 +26,7 @@ import { UpdateFraudThresholdsDto } from './dto/update-fraud-thresholds.dto';
 import { FraudAlertsService } from './fraud-alerts.service';
 import { FraudThresholdsService } from './fraud-thresholds.service';
 import { FraudService } from './fraud.service';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @ApiTags('Fraud')
 @Controller('fraud')
@@ -63,8 +64,12 @@ export class FraudController {
     required: false,
     enum: ['open', 'resolved'],
   })
-  getFraudAlerts(@Query('status') status?: 'open' | 'resolved') {
-    return this.fraudAlertsService.listAlerts(status);
+  @ApiResponse({ status: 200, description: 'Paginated fraud alerts' })
+  getFraudAlerts(
+    @Query('status') status: 'open' | 'resolved' | undefined,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.fraudAlertsService.listAlerts(status, query.page, query.limit);
   }
 
   @Patch('alerts/:alertId/resolve')

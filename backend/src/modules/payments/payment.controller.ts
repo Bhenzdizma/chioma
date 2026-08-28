@@ -51,6 +51,9 @@ import {
 } from './dto/payment-gateway.dto';
 import { PaymentWebhookDto } from './dto/payment-webhook.dto';
 import { RefundWebhookDto } from './dto/refund-webhook.dto';
+import { ApiPaginatedResponse } from '../../common/decorators/api-paginated-response.decorator';
+import { Payment } from './entities/payment.entity';
+import { PaymentSchedule } from './entities/payment-schedule.entity';
 
 @ApiTags('Payments')
 @ApiBearerAuth('JWT-auth')
@@ -88,7 +91,7 @@ export class PaymentController {
 
   @Get()
   @ApiOperation({ summary: 'List payments with filters' })
-  @ApiResponse({ status: 200, description: 'Paginated payments' })
+  @ApiPaginatedResponse(Payment)
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async listPayments(
     @Query() filters: PaymentFiltersDto,
@@ -386,6 +389,7 @@ export class PaymentScheduleController {
   @ApiResponse({ status: 200, description: 'Retrieved' })
   @ApiOperation({ summary: 'List schedules' })
   @Get()
+  @ApiPaginatedResponse(PaymentSchedule)
   async listSchedules(
     @Query() filters: PaymentScheduleFiltersDto,
     @Request() req: { user?: { id: string } },

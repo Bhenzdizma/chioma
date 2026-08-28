@@ -14,6 +14,7 @@ import {
 } from './entities/property-inquiry.entity';
 import { CreatePropertyInquiryDto } from './dto/create-property-inquiry.dto';
 import { assertInquiryTransition } from './inquiry-state-machine';
+import { PaginationUtils } from '../../common/utils';
 
 export interface InquiryPropertySummary {
   id: string;
@@ -90,17 +91,20 @@ export class InquiriesService {
     return saved;
   }
 
-  async listIncoming(userId: string): Promise<PropertyInquiryWithDetails[]> {
-    const inquiries = await this.inquiryRepository.find({
+  async listIncoming(userId: string, page = 1, limit = 20) {
+    PaginationUtils.validatePagination(page, limit);
+    const [inquiries, total] = await this.inquiryRepository.findAndCount({
       where: { toUserId: userId },
       order: { createdAt: 'DESC' },
+      skip: PaginationUtils.calculateOffset(page, limit),
+      take: limit,
     });
 
     const properties = await this.loadProperties(
       inquiries.map((inquiry) => inquiry.propertyId),
     );
 
-    return inquiries.map((inquiry) => ({
+    const data: PropertyInquiryWithDetails[] = inquiries.map((inquiry) => ({
       ...inquiry,
       property: properties.get(inquiry.propertyId) ?? null,
       counterparty: {
@@ -110,12 +114,17 @@ export class InquiriesService {
         phone: inquiry.senderPhone,
       },
     }));
+
+    return PaginationUtils.buildPaginationResponse(data, total, page, limit);
   }
 
-  async listOutgoing(userId: string): Promise<PropertyInquiryWithDetails[]> {
-    const inquiries = await this.inquiryRepository.find({
+  async listOutgoing(userId: string, page = 1, limit = 20) {
+    PaginationUtils.validatePagination(page, limit);
+    const [inquiries, total] = await this.inquiryRepository.findAndCount({
       where: { fromUserId: userId },
       order: { createdAt: 'DESC' },
+      skip: PaginationUtils.calculateOffset(page, limit),
+      take: limit,
     });
 
     const [properties, landlords] = await Promise.all([
@@ -123,11 +132,13 @@ export class InquiriesService {
       this.loadUsers(inquiries.map((inquiry) => inquiry.toUserId)),
     ]);
 
-    return inquiries.map((inquiry) => ({
+    const data: PropertyInquiryWithDetails[] = inquiries.map((inquiry) => ({
       ...inquiry,
       property: properties.get(inquiry.propertyId) ?? null,
       counterparty: landlords.get(inquiry.toUserId) ?? null,
     }));
+
+    return PaginationUtils.buildPaginationResponse(data, total, page, limit);
   }
 
   private async loadProperties(

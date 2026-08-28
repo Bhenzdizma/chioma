@@ -132,17 +132,19 @@ export class QueueManagementService {
   }
 
   /**
-   * Add analytics tracking job to queue
+   * Add analytics event job to queue
+   * Events are processed asynchronously to avoid impacting request latency.
+   * Event loss on queue failure is bounded by retry attempts.
    */
   async addAnalyticsJob(
     data: AnalyticsJobData,
     options?: QueueJobOptions,
   ): Promise<Job> {
     const defaultOptions = {
-      attempts: 3,
+      attempts: 2,
       backoff: {
         type: 'exponential' as const,
-        delay: 2000,
+        delay: 1000,
       },
       removeOnComplete: true,
       removeOnFail: false,

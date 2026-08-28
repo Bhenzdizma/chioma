@@ -18,6 +18,7 @@ import {
   NOTIFICATION_CHANNEL_RETRY_POLICY,
   NotificationChannel,
 } from './notification-channel.policy';
+import { PaginationUtils } from '../../common/utils';
 
 /**
  * Renders an unknown thrown value as a human-readable string. Plain objects are
@@ -208,12 +209,8 @@ export class NotificationsService {
     filters?: { isRead?: boolean; type?: string },
     page: number = 1,
     limit: number = 20,
-  ): Promise<{
-    data: Notification[];
-    total: number;
-    page: number;
-    totalPages: number;
-  }> {
+  ) {
+    PaginationUtils.validatePagination(page, limit);
     const query = this.notificationRepository
       .createQueryBuilder('notification')
       .where('notification.userId = :userId', { userId })
@@ -229,16 +226,11 @@ export class NotificationsService {
       query.andWhere('notification.type = :type', { type: filters.type });
     }
 
-    query.skip((page - 1) * limit).take(limit);
+    query.skip(PaginationUtils.calculateOffset(page, limit)).take(limit);
 
     const [data, total] = await query.getManyAndCount();
 
-    return {
-      data,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-    };
+    return PaginationUtils.buildPaginationResponse(data, total, page, limit);
   }
 
   async getUnreadCount(userId: string): Promise<number> {

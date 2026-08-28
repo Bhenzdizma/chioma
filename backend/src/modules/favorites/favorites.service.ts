@@ -5,10 +5,12 @@ import { Favorite } from './entities/favorite.entity';
 import { Property } from '../properties/entities/property.entity';
 import {
   DEFAULT_FAVORITES_PAGE_SIZE,
+  FavoriteItemDto,
   FavoriteStatusDto,
   MAX_FAVORITES_PAGE_SIZE,
   PaginatedFavoritesDto,
 } from './dtos/favorite.dto';
+import { PaginationUtils } from '../../common/utils';
 
 @Injectable()
 export class FavoritesService {
@@ -36,22 +38,23 @@ export class FavoritesService {
       where: { userId },
       relations: ['property'],
       order: { createdAt: 'DESC' },
-      skip: (safePage - 1) * safeLimit,
+      skip: PaginationUtils.calculateOffset(safePage, safeLimit),
       take: safeLimit,
     });
 
-    return {
-      data: favorites.map((fav) => ({
-        id: fav.id,
-        propertyId: fav.propertyId,
-        property: fav.property,
-        createdAt: fav.createdAt.toISOString(),
-      })),
+    const data: FavoriteItemDto[] = favorites.map((fav) => ({
+      id: fav.id,
+      propertyId: fav.propertyId,
+      property: fav.property,
+      createdAt: fav.createdAt.toISOString(),
+    }));
+
+    return PaginationUtils.buildPaginationResponse(
+      data,
       total,
-      page: safePage,
-      limit: safeLimit,
-      totalPages: Math.ceil(total / safeLimit),
-    };
+      safePage,
+      safeLimit,
+    );
   }
 
   async getFavoriteStatus(

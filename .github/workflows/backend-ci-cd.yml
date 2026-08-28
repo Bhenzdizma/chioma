@@ -118,6 +118,7 @@ jobs:
           DB_PASSWORD: password
           DB_NAME: chioma_db
           DB_ENCRYPTION_KEY: ci-test-only-encryption-key-not-a-real-secret
+          ENCRYPTION_KEY_BASE64: V/u/3yV7ca29JnwZPYxX4I7/7hm29J/kGBqgSlVc2Tw=
 
       - name: Verify entities match the migrated schema
         run: pnpm run migration:schema-check
@@ -128,6 +129,7 @@ jobs:
           DB_PASSWORD: password
           DB_NAME: chioma_db
           DB_ENCRYPTION_KEY: ci-test-only-encryption-key-not-a-real-secret
+          ENCRYPTION_KEY_BASE64: V/u/3yV7ca29JnwZPYxX4I7/7hm29J/kGBqgSlVc2Tw=
 
   build:
     name: Build

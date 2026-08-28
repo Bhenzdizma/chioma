@@ -1,5 +1,5 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UseReplica } from '../../common/decorators/use-replica.decorator';
 import {
   SearchService,
@@ -19,6 +19,7 @@ import {
 export class SearchController {
   constructor(private readonly searchService: SearchService) {}
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('properties')
   @UseReplica({
     maxStaleness: '30s',
@@ -52,6 +53,7 @@ export class SearchController {
     );
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('users')
   @UseReplica({
     maxStaleness: '1m',
@@ -70,6 +72,7 @@ export class SearchController {
     return this.searchService.searchUsers(filters, query.page, query.limit);
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('documents')
   @UseReplica({
     maxStaleness: '1m',
@@ -93,6 +96,7 @@ export class SearchController {
     return this.searchService.searchDocuments(filters, query.page, query.limit);
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('suggest')
   @UseReplica({
     maxStaleness: '5m',

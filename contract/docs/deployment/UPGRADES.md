@@ -24,16 +24,16 @@ all eight Chioma protocol contracts.
 
 The protocol consists of eight Soroban contracts:
 
-| Contract | Env var | Admin storage | Upgrade module |
-|---|---|---|---|
-| `user_profile` | `USER_PROFILE_CONTRACT_ID` | `DataKey::Admin` | `upgrade.rs` |
-| `property_registry` | `PROPERTY_REGISTRY_CONTRACT_ID` | `DataKey::State.admin` | `upgrade.rs` |
-| `agent_registry` | `AGENT_REGISTRY_CONTRACT_ID` | `DataKey::State.admin` | `upgrade.rs` |
-| `rent_obligation` | `RENT_OBLIGATION_CONTRACT_ID` | none | `upgrade.rs` |
-| `escrow` | `ESCROW_CONTRACT_ID` | `DataKey::SystemAdmin` | `upgrade.rs` |
-| `payment` | `PAYMENT_CONTRACT_ID` | fee collector only | `upgrade.rs` |
-| `dispute_resolution` | `DISPUTE_RESOLUTION_CONTRACT_ID` | `DataKey::State.admin` | `upgrade.rs` |
-| `chioma` | `CHIOMA_CONTRACT_ID` | `DataKey::State.admin` + MultiSigConfig | inline in `lib.rs` |
+| Contract             | Env var                          | Admin storage                           | Upgrade module     |
+| -------------------- | -------------------------------- | --------------------------------------- | ------------------ |
+| `user_profile`       | `USER_PROFILE_CONTRACT_ID`       | `DataKey::Admin`                        | `upgrade.rs`       |
+| `property_registry`  | `PROPERTY_REGISTRY_CONTRACT_ID`  | `DataKey::State.admin`                  | `upgrade.rs`       |
+| `agent_registry`     | `AGENT_REGISTRY_CONTRACT_ID`     | `DataKey::State.admin`                  | `upgrade.rs`       |
+| `rent_obligation`    | `RENT_OBLIGATION_CONTRACT_ID`    | none                                    | `upgrade.rs`       |
+| `escrow`             | `ESCROW_CONTRACT_ID`             | `DataKey::SystemAdmin`                  | `upgrade.rs`       |
+| `payment`            | `PAYMENT_CONTRACT_ID`            | fee collector only                      | `upgrade.rs`       |
+| `dispute_resolution` | `DISPUTE_RESOLUTION_CONTRACT_ID` | `DataKey::State.admin`                  | `upgrade.rs`       |
+| `chioma`             | `CHIOMA_CONTRACT_ID`             | `DataKey::State.admin` + MultiSigConfig | inline in `lib.rs` |
 
 A ninth contract, **`upgrade_registry`**, is the coordination layer:
 
@@ -47,7 +47,7 @@ contract/contracts/upgrade_registry/
 ```
 
 The `upgrade_registry` contract is **not** a proxy; it does not sit in the call
-path of normal protocol transactions.  It is purely an administrative bookkeeping
+path of normal protocol transactions. It is purely an administrative bookkeeping
 contract that records the current admin address and deployed version of every
 other contract, and gates coordinated admin rotation proposals behind M-of-N
 approval.
@@ -148,7 +148,7 @@ containing `name`, `contract_id`, `admin`, `version`, and `last_updated`.
 
 ## 3. Upgrading a contract
 
-Use the `coordinated-upgrade.sh` script for **all** upgrades.  Do not invoke
+Use the `coordinated-upgrade.sh` script for **all** upgrades. Do not invoke
 per-contract upgrade functions directly without going through this script,
 because direct invocations bypass the registry bookkeeping step.
 
@@ -210,14 +210,14 @@ between `chioma` and `dispute_resolution`):
 
 `chioma` uses a richer upgrade path:
 
-| | `chioma` | Other 7 contracts |
-|---|---|---|
-| Propose fn | `propose_contract_upgrade` | `propose_upgrade` |
-| Approve fn | `approve_contract_upgrade` | `approve_upgrade` |
-| Execute fn | `execute_contract_upgrade` | `execute_upgrade` |
+|                    | `chioma`                                       | Other 7 contracts          |
+| ------------------ | ---------------------------------------------- | -------------------------- |
+| Propose fn         | `propose_contract_upgrade`                     | `propose_upgrade`          |
+| Approve fn         | `approve_contract_upgrade`                     | `approve_upgrade`          |
+| Execute fn         | `execute_contract_upgrade`                     | `execute_upgrade`          |
 | Multi-sig enforced | ✅ (`required_signatures` from MultiSigConfig) | ⚠ threshold hardcoded to 1 |
-| Version history | ✅ stored on-chain | ❌ only in registry |
-| Cancelled flag | ✅ | ❌ |
+| Version history    | ✅ stored on-chain                             | ❌ only in registry        |
+| Cancelled flag     | ✅                                             | ❌                         |
 
 The `coordinated-upgrade.sh` script handles this distinction automatically.
 
@@ -262,16 +262,16 @@ Step 4 — execute_rotation to close the proposal in the registry
 Because admin management is inconsistent across the 8 contracts, the table
 below shows the exact call required for each:
 
-| Contract | Admin rotation call | Notes |
-|---|---|---|
-| `user_profile` | add `set_admin(caller, new_admin)` function | No direct setter exists yet — see §6.1 |
-| `property_registry` | add `set_admin(caller, new_admin)` function | §6.1 |
-| `agent_registry` | add `set_admin(caller, new_admin)` function | §6.1 |
-| `dispute_resolution` | add `set_admin(caller, new_admin)` function | §6.1 |
-| `escrow` | `set_admin(caller, new_admin)` | Must be added — §6.2 |
-| `payment` | `set_platform_fee_collector(collector)` | Already exposed |
-| `rent_obligation` | N/A | No admin stored |
-| `chioma` | `propose_action(AddAdmin, new_admin)` + `execute_action` | Multi-sig governed |
+| Contract             | Admin rotation call                                      | Notes                                  |
+| -------------------- | -------------------------------------------------------- | -------------------------------------- |
+| `user_profile`       | add `set_admin(caller, new_admin)` function              | No direct setter exists yet — see §6.1 |
+| `property_registry`  | add `set_admin(caller, new_admin)` function              | §6.1                                   |
+| `agent_registry`     | add `set_admin(caller, new_admin)` function              | §6.1                                   |
+| `dispute_resolution` | add `set_admin(caller, new_admin)` function              | §6.1                                   |
+| `escrow`             | `set_admin(caller, new_admin)`                           | Must be added — §6.2                   |
+| `payment`            | `set_platform_fee_collector(collector)`                  | Already exposed                        |
+| `rent_obligation`    | N/A                                                      | No admin stored                        |
+| `chioma`             | `propose_action(AddAdmin, new_admin)` + `execute_action` | Multi-sig governed                     |
 
 #### Manual rotation for `chioma` (multi-sig)
 
@@ -394,7 +394,7 @@ else:
 
 `user_profile`, `property_registry`, `agent_registry`, and `dispute_resolution`
 store their admin in `ContractState` but do not currently expose a `set_admin`
-function in their public ABI.  Until one is added, admin rotation for these
+function in their public ABI. Until one is added, admin rotation for these
 contracts must be done by deploying a new version that accepts the new admin
 address during initialization — which means a full replacement upgrade, not
 an in-place WASM swap.
@@ -426,7 +426,7 @@ Add a `set_admin(caller, new_admin)` function guarded by the current system admi
 ### 6.3 rent_obligation has no admin concept
 
 `rent_obligation` is initialized with no arguments and stores no admin.
-No admin rotation applies.  Upgrades still go through the normal
+No admin rotation applies. Upgrades still go through the normal
 `propose_upgrade` / `execute_upgrade` flow but with any authorized caller.
 
 ### 6.4 payment has no admin concept beyond fee collector
@@ -438,9 +438,9 @@ new address.
 ### 6.5 required_signatures hardcoded to 1 in peripheral contracts
 
 Six of the seven peripheral `upgrade.rs` files set `required_signatures: 1`
-unconditionally.  This means propose + execute by a single admin is enough,
-regardless of how many admins exist.  This is intentional for simplicity but
-means there is no multi-sig check on these upgrades.  If you need multi-sig
+unconditionally. This means propose + execute by a single admin is enough,
+regardless of how many admins exist. This is intentional for simplicity but
+means there is no multi-sig check on these upgrades. If you need multi-sig
 enforcement, either:
 
 - Gate the upgrade via a `chioma` multi-sig proposal that calls
@@ -451,7 +451,7 @@ enforcement, either:
 ### 6.6 Actual WASM update not called
 
 The current `execute_upgrade` implementations record state but do not call
-`env.deployer().update_current_contract_wasm(wasm_hash)`.  This means the
+`env.deployer().update_current_contract_wasm(wasm_hash)`. This means the
 proposal workflow is correctly gated but the actual bytecode swap is a
 **separate** step that must be done via `stellar contract upgrade`:
 
@@ -495,7 +495,7 @@ The `coordinated-upgrade.sh` script documents where to insert this call
 
 ### 8.1 WASM rollback
 
-Keep the previous WASM hash in your upgrade notes.  To roll back:
+Keep the previous WASM hash in your upgrade notes. To roll back:
 
 ```bash
 # Re-upload the old WASM (or reuse its hash if still on-chain)
@@ -522,7 +522,7 @@ stellar contract invoke \
 
 ### 8.2 State rollback
 
-State is stored on-chain and cannot be rolled back by reverting the WASM.  If
+State is stored on-chain and cannot be rolled back by reverting the WASM. If
 a bad upgrade corrupts state, a migration contract or a replacement deployment
 with state export/import is required (see the Soroban state migration patterns
 in the original UPGRADES.md for reference code).
@@ -537,9 +537,9 @@ If an admin key is suspected compromised:
    For other contracts that support it, pause them too.
 
 2. **Assess** — Run `get_protocol_status` to see which contracts the compromised
-   key is admin on.  Check on-chain events for any unauthorized transactions.
+   key is admin on. Check on-chain events for any unauthorized transactions.
 
-3. **Rotate** — Run `rotate-admin.sh <NEW_SAFE_ADDRESS>`.  For multi-sig
+3. **Rotate** — Run `rotate-admin.sh <NEW_SAFE_ADDRESS>`. For multi-sig
    contracts where the compromised key is one of multiple admins, the remaining
    admins can propose and execute a `RemoveAdmin` action.
 
@@ -547,7 +547,7 @@ If an admin key is suspected compromised:
    is no longer the admin on any contract.
 
 5. **Audit** — Review all on-chain transactions since the suspected compromise
-   timestamp.  Check upgrade proposals and admin action proposals for any that
+   timestamp. Check upgrade proposals and admin action proposals for any that
    were executed by the compromised key.
 
 6. **Unpause** — Once the rotation is verified, call `chioma.unpause()`.

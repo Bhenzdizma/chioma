@@ -4,6 +4,7 @@ import {
   ApiOperation,
   ApiQuery,
   ApiTags,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -21,6 +22,7 @@ import { UseReplica } from '../../common/decorators/use-replica.decorator';
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('landlord/dashboard')
   @UseReplica({
     maxStaleness: '5m',
@@ -43,6 +45,7 @@ export class AnalyticsController {
     );
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('landlord/fees-summary')
   @UseReplica({
     maxStaleness: '5m',
@@ -53,6 +56,7 @@ export class AnalyticsController {
     return this.analyticsService.getLandlordFeesSummary(user.id);
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('dashboard/metrics')
   @UseReplica({
     maxStaleness: '5m',
@@ -63,6 +67,7 @@ export class AnalyticsController {
     return this.analyticsService.getDashboardMetrics(user.id);
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('payment/analytics')
   @UseReplica({
     maxStaleness: '5m',
@@ -82,6 +87,7 @@ export class AnalyticsController {
     return this.analyticsService.getPaymentAnalytics(user.id, query.days ?? 30);
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('user/activity')
   @UseReplica({
     maxStaleness: '5m',
@@ -104,6 +110,7 @@ export class AnalyticsController {
     );
   }
 
+  @ApiResponse({ status: 201, description: 'Created' })
   @Post('reports/generate')
   @ApiOperation({ summary: 'Generate analytics report' })
   async generateReport(
@@ -113,6 +120,7 @@ export class AnalyticsController {
     return this.analyticsService.generateReport(user.id, dto);
   }
 
+  @ApiResponse({ status: 201, description: 'Created' })
   @Post('export')
   @ApiOperation({ summary: 'Export analytics data' })
   async exportAnalytics(

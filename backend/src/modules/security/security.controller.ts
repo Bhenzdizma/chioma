@@ -61,6 +61,8 @@ export class SecurityController {
 
   // ─── Public endpoints ─────────────────────────────────────────────────────
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
+  @ApiOperation({ summary: 'Get' })
   @Get('security.txt')
   @Get('.well-known/security.txt')
   @ApiOperation({
@@ -116,6 +118,7 @@ export class SecurityController {
     return this.securityEventsService.getRecentEvents(query.hours, query.limit);
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('security/events/user/:userId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -133,6 +136,7 @@ export class SecurityController {
     );
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('security/events/suspicious/:userId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -146,6 +150,7 @@ export class SecurityController {
 
   // ─── Threat Detection ─────────────────────────────────────────────────────
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('security/threats')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -155,6 +160,7 @@ export class SecurityController {
     return this.threatDetectionService.getRecentThreats(query.limit);
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('security/threats/stats')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -164,6 +170,7 @@ export class SecurityController {
     return this.threatDetectionService.getThreatStats(query.hours);
   }
 
+  @ApiResponse({ status: 200, description: 'Updated' })
   @Patch('security/threats/:id/false-positive')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -182,6 +189,7 @@ export class SecurityController {
 
   // ─── Incident Management ──────────────────────────────────────────────────
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('security/incidents')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -191,6 +199,7 @@ export class SecurityController {
     return this.incidentService.getOpenIncidents();
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('security/incidents/metrics')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -200,6 +209,7 @@ export class SecurityController {
     return this.incidentService.getResponseMetrics();
   }
 
+  @ApiResponse({ status: 201, description: 'Created' })
   @Post('security/incidents/:id/resolve')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -221,6 +231,7 @@ export class SecurityController {
     );
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('security/incidents/:id/report')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -232,6 +243,7 @@ export class SecurityController {
 
   // ─── Compliance Reports ───────────────────────────────────────────────────
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('security/compliance/score')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -241,6 +253,7 @@ export class SecurityController {
     return this.complianceService.getSecurityScore();
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('security/compliance/gdpr')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -254,6 +267,7 @@ export class SecurityController {
     return this.complianceService.generateGdprReport(from, to);
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('security/compliance/soc2')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -267,6 +281,7 @@ export class SecurityController {
     return this.complianceService.generateSoc2Report(from, to);
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('security/compliance/pci-dss')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -282,6 +297,7 @@ export class SecurityController {
 
   // ─── RBAC Management ─────────────────────────────────────────────────────
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('security/rbac/roles')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -291,6 +307,7 @@ export class SecurityController {
     return this.rbacService.findAllRoles();
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('security/rbac/permissions')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -300,6 +317,7 @@ export class SecurityController {
     return this.rbacService.findAllPermissions();
   }
 
+  @ApiResponse({ status: 201, description: 'Created' })
   @Post('security/rbac/seed')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -317,6 +335,7 @@ export class SecurityController {
 
   // ─── Blockchain Audit Anchoring ───────────────────────────────────────────
 
+  @ApiResponse({ status: 201, description: 'Created' })
   @Post('security/audit/anchor')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)

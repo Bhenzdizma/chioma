@@ -10,7 +10,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { MessagingService } from './messaging.service';
 import { Deprecated } from '../../common/decorators/deprecated.decorator';
 import { CreateRoomDto } from './dto/create-room.dto';
@@ -25,6 +25,7 @@ export class MessagingController {
 
   // ── Legacy history endpoint ──────────────────────────────────────────────
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('history')
   @ApiOperation({ summary: '[Deprecated] Get chat history for a chat group' })
   @Deprecated({
@@ -50,12 +51,14 @@ export class MessagingController {
 
   // ── Rooms ────────────────────────────────────────────────────────────────
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('rooms')
   @ApiOperation({ summary: 'Get all chat rooms for the current user' })
   async getRooms(@Query() query: UserIdQueryDto) {
     return this.messagingService.getRoomsForUser(query.userId);
   }
 
+  @ApiResponse({ status: 201, description: 'Created' })
   @Post('rooms')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create or find a direct message room' })
@@ -68,6 +71,7 @@ export class MessagingController {
 
   // ── Messages ─────────────────────────────────────────────────────────────
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('rooms/:roomId/messages')
   @ApiOperation({ summary: 'Get messages for a room' })
   async getMessages(
@@ -81,6 +85,7 @@ export class MessagingController {
     );
   }
 
+  @ApiResponse({ status: 200, description: 'Updated' })
   @Patch('rooms/:roomId/read')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Mark all messages in a room as read' })

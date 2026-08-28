@@ -1,4 +1,7 @@
-import { getDashboardRoute, type UserRole } from '@/lib/navigation/role-navigation';
+import {
+  getDashboardRoute,
+  type UserRole,
+} from '@/lib/navigation/role-navigation';
 
 export const AUTH_COOKIE_NAME = 'chioma_auth_token';
 
@@ -62,9 +65,6 @@ export function getRequiredRoles(pathname: string): UserRole[] | null {
   return rule?.allowedRoles ?? null;
 }
 
-export function getRoleRedirectUrl(
-  role: UserRole,
-  requestUrl: string,
-): string {
+export function getRoleRedirectUrl(role: UserRole, requestUrl: string): string {
   return new URL(getDashboardRoute(role), requestUrl).toString();
 }

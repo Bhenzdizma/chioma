@@ -13,13 +13,13 @@ and no `ownerId` as a **public listing** — the cache-warmed hot path (see
 top of that status filter, the dominant combined predicates are:
 
 1. **Location + price range** — `status = 'published' AND city = X AND
-   price BETWEEN a AND b` (the default public search: "listings in this
+price BETWEEN a AND b` (the default public search: "listings in this
    city within this budget").
 2. **Property type + price range** — `status = 'published' AND type = X
-   AND price BETWEEN a AND b` (browsing by apartment/house/commercial/land
+AND price BETWEEN a AND b` (browsing by apartment/house/commercial/land
    within a budget).
 3. **Bedroom count + price range** — `status = 'published' AND bedrooms =
-   N AND price BETWEEN a AND b` (the common "N-bedroom apartments under
+N AND price BETWEEN a AND b` (the common "N-bedroom apartments under
    $X" pattern).
 
 Before this change, `properties` had exactly one index (`owner_id`) plus
@@ -66,11 +66,11 @@ the columns after it from being used at all.
 **Query shape 1 — `status = 'published' AND LOWER(city) = 'lagos' AND
 price BETWEEN 500 AND 3000 ORDER BY created_at DESC LIMIT 10`:**
 
-| | Before | After |
-|---|---|---|
-| Plan | `Parallel Seq Scan` (124,326 rows filtered out) | `Bitmap Index Scan` on `IDX_properties_status_city_price` |
-| Buffers | 2801 shared hits | 1074 hits + 9 reads |
-| Execution time | 29.6 ms | 4.8 ms |
+|                | Before                                          | After                                                     |
+| -------------- | ----------------------------------------------- | --------------------------------------------------------- |
+| Plan           | `Parallel Seq Scan` (124,326 rows filtered out) | `Bitmap Index Scan` on `IDX_properties_status_city_price` |
+| Buffers        | 2801 shared hits                                | 1074 hits + 9 reads                                       |
+| Execution time | 29.6 ms                                         | 4.8 ms                                                    |
 
 ```
 -- BEFORE
@@ -89,20 +89,20 @@ price BETWEEN 500 AND 3000 ORDER BY created_at DESC LIMIT 10`:**
 **Query shape 2 — `status = 'published' AND type = 'apartment' AND price
 BETWEEN 500 AND 3000 ORDER BY created_at DESC LIMIT 10`:**
 
-| | Before | After |
-|---|---|---|
-| Plan | `Parallel Seq Scan` (120,921 rows filtered out) | `Bitmap Index Scan` on `IDX_properties_status_type_price` |
-| Buffers | 2801 shared hits | 2655 hits + 52 reads |
-| Execution time | 15.7 ms | 7.3 ms |
+|                | Before                                          | After                                                     |
+| -------------- | ----------------------------------------------- | --------------------------------------------------------- |
+| Plan           | `Parallel Seq Scan` (120,921 rows filtered out) | `Bitmap Index Scan` on `IDX_properties_status_type_price` |
+| Buffers        | 2801 shared hits                                | 2655 hits + 52 reads                                      |
+| Execution time | 15.7 ms                                         | 7.3 ms                                                    |
 
 **Query shape 3 — `status = 'published' AND bedrooms = 2 AND price
 BETWEEN 500 AND 3000 ORDER BY created_at DESC LIMIT 10`:**
 
-| | Before | After |
-|---|---|---|
-| Plan | `Parallel Seq Scan` (121,662 rows filtered out) | `Bitmap Index Scan` on `IDX_properties_status_bedrooms_price` |
-| Buffers | 2801 shared hits | 2537 hits + 36 reads |
-| Execution time | 15.9 ms | 4.9 ms |
+|                | Before                                          | After                                                         |
+| -------------- | ----------------------------------------------- | ------------------------------------------------------------- |
+| Plan           | `Parallel Seq Scan` (121,662 rows filtered out) | `Bitmap Index Scan` on `IDX_properties_status_bedrooms_price` |
+| Buffers        | 2801 shared hits                                | 2537 hits + 36 reads                                          |
+| Execution time | 15.9 ms                                         | 4.9 ms                                                        |
 
 All three shapes moved from a full parallel sequential scan to an index
 scan against the new composite index, confirmed by `EXPLAIN`'s `Index
@@ -114,7 +114,7 @@ relative gains may differ, but all three queries now execute as a
 selective index scan instead of scanning and filtering the entire table,
 which is the property that matters as listing count grows: sequential
 scan cost is `O(table size)` regardless of how selective the filter is,
-while the indexed cost tracks the *matching row count*.
+while the indexed cost tracks the _matching row count_.
 
 ### Reproducing this analysis
 
@@ -142,10 +142,10 @@ against a fresh database:
   not worthwhile here. The current indexes still avoid the heap-scan cost
   of a full table scan even though they require one heap fetch per
   matching row (visible as `Heap Blocks: exact=N` in the `Bitmap Heap
-  Scan` step above).
+Scan` step above).
 - Partial indexes (`WHERE status = 'published'`) were considered to make
   the indexes smaller, mirroring the geolocation index's `WHERE latitude
-  IS NOT NULL` pattern in `1783000000000-AddPropertySearchIndexes.ts`.
+IS NOT NULL` pattern in `1783000000000-AddPropertySearchIndexes.ts`.
   This was deliberately not done: `status` is the leading column and
   already prunes non-published rows efficiently via the composite key
   itself, and keeping `status` as a real leading column (rather than a

@@ -26,6 +26,7 @@ export class CleanupController {
     private readonly orphanedRecordsCleanupService: OrphanedRecordsCleanupService,
   ) {}
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('report')
   @ApiOperation({ summary: 'Get technical debt cleanup report' })
   getReport() {

@@ -39,6 +39,7 @@ export class FraudController {
     private readonly fraudThresholdsService: FraudThresholdsService,
   ) {}
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('user/:userId')
   @ApiOperation({ summary: 'Check user fraud risk' })
   @ApiParam({ name: 'userId', description: 'User ID to check' })
@@ -46,6 +47,7 @@ export class FraudController {
     return this.fraudService.checkUserFraud(userId);
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('listing/:listingId')
   @ApiOperation({ summary: 'Check listing fraud risk' })
   @ApiParam({ name: 'listingId', description: 'Listing ID to check' })
@@ -53,6 +55,7 @@ export class FraudController {
     return this.fraudService.checkListingFraud(listingId);
   }
 
+  @ApiResponse({ status: 200, description: 'Retrieved' })
   @Get('alerts')
   @ApiOperation({ summary: 'Get fraud alerts' })
   @ApiQuery({
@@ -76,6 +79,7 @@ export class FraudController {
     return this.fraudAlertsService.resolveAlert(alertId);
   }
 
+  @ApiResponse({ status: 201, description: 'Created' })
   @Post('transaction')
   @ApiOperation({ summary: 'Check transaction fraud risk' })
   async checkTransactionFraud(@Body() payload: CheckTransactionFraudDto) {
@@ -84,6 +88,7 @@ export class FraudController {
 
   @Get('thresholds')
   @ApiOperation({ summary: 'Get current fraud scoring thresholds' })
+  @ApiResponse({ status: 200, description: 'Current thresholds' })
   getThresholds() {
     return this.fraudThresholdsService.getThresholds();
   }

@@ -36,7 +36,7 @@ transfers gated by `require_auth`. Splitting it changes two things that are easy
 get subtly wrong under time pressure:
 
 - **Auth semantics.** Inside one contract, `caller.require_auth()` proves who is
-  calling. Across contracts, the callee sees the *contract* as the caller unless
+  calling. Across contracts, the callee sees the _contract_ as the caller unless
   auth is explicitly re-authorized/forwarded, so every extracted entry point needs
   its authorization story re-verified, not just moved.
 - **Storage semantics.** Soroban storage is namespaced per contract. Data currently
@@ -54,22 +54,22 @@ than landing as one large, hard-to-review change.
 Grep-verified against the current `contracts/chioma/src/*.rs` (see
 [Source layout](./../contracts/CHIOMA.md#source-layout)):
 
-| Module | Touches `DataKey::Agreement` directly? | Called from `agreement.rs` hot path? | Gates core admin/lifecycle calls in `lib.rs`? |
-|---|---|---|---|
-| `multi_sig` | No | No | Yes — `require_admin`/`is_admin` gate upgrade proposals and version/pause changes |
-| `timelock` | No | No | Yes — delayed execution for admin actions |
-| `rate_limit` | No | Yes — `create_agreement`, `sign_agreement` call `check_rate_limit` inline | No |
-| `gas_optimization` | No | No | No — read-only estimation/metrics |
-| `multi_token` | No | Yes — `create_agreement_with_token`/payment flow call `is_token_supported`/`convert_amount` | No |
-| `deposit_interest` | **Yes** — reads `RentAgreement` for principal/token; `process_interest_accruals` iterates all agreements via `AgreementCount` | No (invoked as its own admin/cron-style entry points) | No |
-| `royalties` | **Yes** — reads `RentAgreement`, and `transfer_with_royalty` **mutates** `agreement.admin` in place | No | No |
+| Module             | Touches `DataKey::Agreement` directly?                                                                                        | Called from `agreement.rs` hot path?                                                        | Gates core admin/lifecycle calls in `lib.rs`?                                     |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `multi_sig`        | No                                                                                                                            | No                                                                                          | Yes — `require_admin`/`is_admin` gate upgrade proposals and version/pause changes |
+| `timelock`         | No                                                                                                                            | No                                                                                          | Yes — delayed execution for admin actions                                         |
+| `rate_limit`       | No                                                                                                                            | Yes — `create_agreement`, `sign_agreement` call `check_rate_limit` inline                   | No                                                                                |
+| `gas_optimization` | No                                                                                                                            | No                                                                                          | No — read-only estimation/metrics                                                 |
+| `multi_token`      | No                                                                                                                            | Yes — `create_agreement_with_token`/payment flow call `is_token_supported`/`convert_amount` | No                                                                                |
+| `deposit_interest` | **Yes** — reads `RentAgreement` for principal/token; `process_interest_accruals` iterates all agreements via `AgreementCount` | No (invoked as its own admin/cron-style entry points)                                       | No                                                                                |
+| `royalties`        | **Yes** — reads `RentAgreement`, and `transfer_with_royalty` **mutates** `agreement.admin` in place                           | No                                                                                          | No                                                                                |
 
 This inverts the naive assumption that royalties/multi-token are the "safe, small
 files to extract first." `multi_sig` and `timelock` are actually the cleanest: they
 have zero storage coupling to `RentAgreement`, and the dependency direction is
 "core calls into governance to check a permission," which is a natural
 cross-contract shape (an access-controller/registry pattern). `royalties` and
-`deposit_interest` are the hardest: they read *and write* core agreement state and,
+`deposit_interest` are the hardest: they read _and write_ core agreement state and,
 in the interest case, scan the whole agreement set.
 
 ## Target architecture
@@ -177,7 +177,7 @@ splitting further later is cheap once the pattern from Phase 1 exists).
 - Requires deciding one of:
   1. **Read-through:** the new contract calls back into `chioma` via a narrow
      read-only view function (e.g. `get_agreement_escrow_info(agreement_id) ->
-     (i128, Address)`) exposed specifically for this purpose, instead of reading
+(i128, Address)`) exposed specifically for this purpose, instead of reading
      `RentAgreement` wholesale. Recommended — keeps `chioma` as the single source
      of truth for agreement state and avoids duplication drift.
   2. **Push model:** `chioma` pushes the fields the interest contract needs at
@@ -201,8 +201,8 @@ splitting further later is cheap once the pattern from Phase 1 exists).
   storage directly in Soroban, so this requires `chioma` to expose an
   authenticated write entry point (e.g. `transfer_agreement_ownership`) that the
   royalties contract calls, or — simpler and recommended — keep
-  `transfer_with_royalty`'s *ownership-transfer* step in `chioma` itself and have
-  the royalties contract only own the royalty *calculation and payout*
+  `transfer_with_royalty`'s _ownership-transfer_ step in `chioma` itself and have
+  the royalties contract only own the royalty _calculation and payout_
   (`calculate_royalty`, `get_royalty`, `set_royalty`, the actual token transfers),
   with `chioma`'s agreement-transfer flow calling into it for the royalty amount
   and payout, then updating `agreement.admin` locally.
@@ -222,8 +222,8 @@ For each phase:
 - Auth forwarding: where a user-facing `chioma` entry point currently does
   `caller.require_auth()` then calls straight into e.g. `multi_sig::propose_action`,
   after extraction `chioma` still does `caller.require_auth()` itself (proving the
-  caller authorized *this* invocation), and the satellite contract independently
-  requires whatever auth *it* needs for its own state changes — do not assume one
+  caller authorized _this_ invocation), and the satellite contract independently
+  requires whatever auth _it_ needs for its own state changes — do not assume one
   `require_auth()` covers both contracts. Test both boundaries explicitly, mirroring
   the `tests_rbac.rs` convention in [property_registry](../../contracts/property_registry/src/tests_rbac.rs).
 - Every new cross-contract call site needs a corresponding integration test that

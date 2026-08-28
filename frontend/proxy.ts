@@ -27,20 +27,14 @@ export function proxy(request: NextRequest) {
 
   if (!authToken) {
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set(
-      'next',
-      pathname + request.nextUrl.search,
-    );
+    loginUrl.searchParams.set('next', pathname + request.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 
   const payload = decodeAccessToken(authToken);
   if (!payload) {
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set(
-      'next',
-      pathname + request.nextUrl.search,
-    );
+    loginUrl.searchParams.set('next', pathname + request.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 

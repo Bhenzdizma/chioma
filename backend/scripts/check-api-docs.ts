@@ -45,6 +45,9 @@ const RESPONSE_DECORATOR_PATTERN = new RegExp(
     '@ApiConflictResponse',
     '@ApiInternalServerErrorResponse',
     '@ApiDefaultResponse',
+    // Project shorthand (common/decorators/api-paginated-response.decorator.ts)
+    // that applies @ApiOkResponse under the hood for paginated list endpoints.
+    '@ApiPaginatedResponse\\(',
   ].join('|'),
 );
 

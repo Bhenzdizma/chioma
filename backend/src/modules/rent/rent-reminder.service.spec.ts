@@ -26,6 +26,7 @@ describe('RentReminderService', () => {
             save: jest.fn(),
             find: jest.fn(),
             findOne: jest.fn(),
+            findAndCount: jest.fn(),
           },
         },
         {
@@ -49,8 +50,8 @@ describe('RentReminderService', () => {
       reminderRepository.create.mockImplementation(
         (data) => data as RentReminder,
       );
-      reminderRepository.save.mockImplementation((data) =>
-        Promise.resolve(data as RentReminder[]),
+      reminderRepository.save.mockImplementation((data: any) =>
+        Promise.resolve(data),
       );
 
       const dueDate = new Date('2026-07-01T00:00:00.000Z');
@@ -74,8 +75,8 @@ describe('RentReminderService', () => {
         created.push(data as RentReminder);
         return data as RentReminder;
       });
-      reminderRepository.save.mockImplementation((data) =>
-        Promise.resolve(data as RentReminder[]),
+      reminderRepository.save.mockImplementation((data: any) =>
+        Promise.resolve(data),
       );
 
       await service.createRemindersForAgreement(
@@ -103,8 +104,8 @@ describe('RentReminderService', () => {
         created.push(data as RentReminder);
         return data as RentReminder;
       });
-      reminderRepository.save.mockImplementation((data) =>
-        Promise.resolve(data as RentReminder[]),
+      reminderRepository.save.mockImplementation((data: any) =>
+        Promise.resolve(data),
       );
 
       await service.createRemindersForAgreement(
@@ -326,23 +327,28 @@ describe('RentReminderService', () => {
 
   describe('getReminders', () => {
     it('queries by agreement id ordered by due date then days-before descending', async () => {
-      reminderRepository.find.mockResolvedValue([]);
+      reminderRepository.findAndCount.mockResolvedValue([[], 0]);
 
       await service.getReminders('agreement-1');
 
-      expect(reminderRepository.find).toHaveBeenCalledWith({
+      expect(reminderRepository.findAndCount).toHaveBeenCalledWith({
         where: { agreementId: 'agreement-1' },
         order: { dueDate: 'ASC', daysBefore: 'DESC' },
+        skip: 0,
+        take: 20,
       });
     });
 
     it('returns the reminders found for the agreement', async () => {
       const reminders = [{ id: 'r1' }, { id: 'r2' }] as RentReminder[];
-      reminderRepository.find.mockResolvedValue(reminders);
+      reminderRepository.findAndCount.mockResolvedValue([
+        reminders,
+        reminders.length,
+      ]);
 
       const result = await service.getReminders('agreement-1');
 
-      expect(result).toEqual(reminders);
+      expect(result.data).toEqual(reminders);
     });
   });
 

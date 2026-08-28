@@ -120,6 +120,7 @@ const bookingsQueryRunner = {
       Promise.resolve({ id: v.id ?? 'generated-id', ...v }),
     ),
     findOne: jest.fn(),
+    exists: jest.fn().mockResolvedValue(false),
   },
 };
 const mockBookingsDataSource = {
@@ -138,6 +139,7 @@ const mockAgreementPaymentRepo = {
   create: jest.fn((v: any) => v),
   save: jest.fn(),
   find: jest.fn(),
+  findAndCount: jest.fn(),
 };
 const mockAuditService = { log: jest.fn().mockResolvedValue(undefined) };
 const mockReviewPromptService = {
@@ -472,11 +474,17 @@ describe('Lease Lifecycle Integration (#1624)', () => {
       expect(octoberRent.amount).toBe(1800);
 
       // The rent schedule for this lease now shows both months paid.
-      mockAgreementPaymentRepo.find.mockResolvedValue(recordedPayments);
-      const rentSchedule = await agreements.getPayments(agreement.id);
-      expect(rentSchedule).toHaveLength(2);
+      mockAgreementPaymentRepo.findAndCount.mockResolvedValue([
+        recordedPayments,
+        recordedPayments.length,
+      ]);
+      const rentSchedule = await agreements.getPayments(agreement.id, {
+        page: 1,
+        limit: 20,
+      } as any);
+      expect(rentSchedule.data).toHaveLength(2);
       expect(
-        rentSchedule.reduce((sum: number, p: any) => sum + p.amount, 0),
+        rentSchedule.data.reduce((sum: number, p: any) => sum + p.amount, 0),
       ).toBe(3600);
 
       // 6. Termination — the lease ends.

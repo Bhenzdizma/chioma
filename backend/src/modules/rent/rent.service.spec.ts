@@ -21,7 +21,7 @@ describe('RentService', () => {
         },
         {
           provide: getRepositoryToken(Payment),
-          useValue: { find: jest.fn() },
+          useValue: { find: jest.fn(), findAndCount: jest.fn() },
         },
       ],
     }).compile();
@@ -231,32 +231,37 @@ describe('RentService', () => {
       const payments = [
         { id: 'p1', paymentDate: new Date(2026, 1, 1) },
         { id: 'p2', paymentDate: new Date(2026, 0, 1) },
-      ] as Payment[];
+      ] as unknown as Payment[];
 
       agreementRepository.findOne.mockResolvedValue(agreement);
-      paymentRepository.find.mockResolvedValue(payments);
+      paymentRepository.findAndCount.mockResolvedValue([
+        payments,
+        payments.length,
+      ]);
 
       const result = await service.getRentHistory('agreement-1');
 
       expect(agreementRepository.findOne).toHaveBeenCalledWith({
         where: { id: 'agreement-1' },
       });
-      expect(paymentRepository.find).toHaveBeenCalledWith({
+      expect(paymentRepository.findAndCount).toHaveBeenCalledWith({
         where: { agreementId: 'agreement-1' },
         order: { paymentDate: 'DESC' },
+        skip: 0,
+        take: 20,
       });
-      expect(result).toEqual(payments);
+      expect(result.data).toEqual(payments);
     });
 
     it('returns an empty array when the agreement has no payments', async () => {
       agreementRepository.findOne.mockResolvedValue({
         id: 'agreement-1',
       } as RentAgreement);
-      paymentRepository.find.mockResolvedValue([]);
+      paymentRepository.findAndCount.mockResolvedValue([[], 0]);
 
       const result = await service.getRentHistory('agreement-1');
 
-      expect(result).toEqual([]);
+      expect(result.data).toEqual([]);
     });
   });
 });

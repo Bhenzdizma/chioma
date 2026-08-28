@@ -230,8 +230,8 @@ describe('KycService', () => {
       });
       expect(encryptionService.decrypt).toHaveBeenCalledWith('encrypted_John');
       expect(encryptionService.decrypt).toHaveBeenCalledWith('encrypted_Doe');
-      expect(result?.encryptedKycData.first_name).toBe('John');
-      expect(result?.encryptedKycData.last_name).toBe('Doe');
+      expect(result?.encryptedKycData?.first_name).toBe('John');
+      expect(result?.encryptedKycData?.last_name).toBe('Doe');
     });
 
     it('should return null if no KYC record exists', async () => {
@@ -268,7 +268,7 @@ describe('KycService', () => {
       const result = await service.getKycStatus(mockUserId);
 
       expect(result).toBeDefined();
-      expect(result?.encryptedKycData.first_name).toBe('corrupted_data');
+      expect(result?.encryptedKycData?.first_name).toBe('corrupted_data');
     });
   });
 
@@ -498,9 +498,9 @@ describe('KycService', () => {
       // Retrieve with decryption
       const retrieved = await testService.getKycStatus(mockUserId);
 
-      expect(retrieved?.encryptedKycData.first_name).toBe('Alice');
-      expect(retrieved?.encryptedKycData.last_name).toBe('Smith');
-      expect(retrieved?.encryptedKycData.id_number).toBe('ID987654');
+      expect(retrieved?.encryptedKycData?.first_name).toBe('Alice');
+      expect(retrieved?.encryptedKycData?.last_name).toBe('Smith');
+      expect(retrieved?.encryptedKycData?.id_number).toBe('ID987654');
     });
   });
 

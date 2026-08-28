@@ -14,6 +14,7 @@ import { AuditService } from '../../audit/audit.service';
 import { LockService } from '../../../common/lock';
 import { IdempotencyService } from '../../../common/idempotency';
 import { ValidationError } from '../../../common/errors/domain-errors';
+import { MalwareScanService } from '../../storage/malware-scan.service';
 import {
   DEFAULT_EVIDENCE_MAX_FILE_SIZE_BYTES,
   sniffEvidenceFileType,
@@ -158,6 +159,10 @@ describe('DisputesService evidence upload enforcement', () => {
         },
         { provide: IdempotencyService, useValue: {} },
         { provide: ConfigService, useValue: { get: configGet } },
+        {
+          provide: MalwareScanService,
+          useValue: { scan: jest.fn().mockResolvedValue({ clean: true }) },
+        },
       ],
     }).compile();
 

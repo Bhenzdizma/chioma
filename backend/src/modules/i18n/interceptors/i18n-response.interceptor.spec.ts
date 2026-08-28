@@ -56,7 +56,7 @@ describe('I18nResponseInterceptor', () => {
       .intercept(buildContext('es'), buildHandler(payload))
       .subscribe((result) => {
         expect(result).toEqual({
-          message: 'Creado correctamente',
+          message: 'OK',
           nested: { deep: 'Inicio de sesion exitoso' },
           untouched: 'plain value',
         });

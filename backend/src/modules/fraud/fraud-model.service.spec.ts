@@ -14,7 +14,22 @@ describe('FraudModelService', () => {
     service = new FraudModelService(thresholdsService as never);
   });
 
-  it('scores neutral features as allow when below both thresholds', () => {
+  it('scores neutral (empty) features at the model midpoint, which is "review" under the default thresholds', () => {
+    // raw = 0 -> normalizedScore = round(50 + 0 * 10) = 50, and the real
+    // default thresholds (fraud-thresholds.defaults.ts) have
+    // thresholdReview = 45, so 50 >= 45 -> 'review'. This is pre-existing,
+    // unchanged scoring-model behavior (same formula and defaults as before
+    // thresholds became runtime-configurable in #1738) - not a regression.
+    const result = service.score({});
+    expect(result.score).toBe(50);
+    expect(result.decision).toBe('review');
+  });
+
+  it('scores neutral features as allow once thresholdReview is above the model midpoint', () => {
+    thresholdsService.getThresholds.mockReturnValue({
+      thresholdReview: 60,
+      thresholdBlock: 90,
+    });
     const result = service.score({});
     expect(result.decision).toBe('allow');
   });

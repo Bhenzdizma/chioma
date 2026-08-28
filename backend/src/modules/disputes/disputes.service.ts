@@ -514,8 +514,11 @@ export class DisputesService {
     // Validate file content (magic bytes), never the declared MIME header
     const detectedType = this.validateFile(file);
 
-    // Scan the uploaded file before it becomes part of the dispute record
-    const buffer = await readFile(file.path);
+    // Scan the uploaded file before it becomes part of the dispute record.
+    // FileInterceptor defaults to multer's memory storage (file.buffer),
+    // not disk storage, so only fall back to reading file.path if a buffer
+    // wasn't provided.
+    const buffer = file.buffer ?? (await readFile(file.path));
     const scanResult = await this.malwareScan.scan(buffer, file.originalname);
 
     const evidence = this.evidenceRepository.create({

@@ -191,6 +191,7 @@ describe('PropertiesService', () => {
 
   const mockFraudHooksService = {
     onListingPublished: jest.fn().mockResolvedValue(undefined),
+    checkListingBeforePublishing: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockSavedSearchService = {

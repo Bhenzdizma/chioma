@@ -106,6 +106,9 @@ export {
 
 export type { AgreementSummary, AgreementResponse } from './use-agreements';
 
+export { useAvailability } from './use-availability';
+export type { AvailabilityDay } from './use-availability';
+
 export { useLandlordPropertyAnalytics } from './use-property-analytics';
 
 export { useFeesSummary } from './use-fees-summary';

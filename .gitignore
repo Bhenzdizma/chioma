@@ -71,3 +71,8 @@ pr.md
 checks.md
 create-github-issues.sh
 /issues/frontend/storybook-static/
+
+# test and compiler outputs
+jest-output.log
+*.log
+tsc.log

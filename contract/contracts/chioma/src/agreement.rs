@@ -129,7 +129,15 @@ fn create_agreement_internal(
         .set(&DataKey::AgreementCount, &count);
     env.storage().instance().extend_ttl(TTL_THRESHOLD, TTL_BUMP);
 
-    // Emit event with topics for indexing
+    // Emit events with topics for indexing
+    events::booking_created(
+        env,
+        agreement_id.clone(),
+        agreement.user.clone(),
+        agreement.admin.clone(),
+        agreement.start_date,
+        agreement.end_date,
+    );
     events::agreement_created(
         env,
         agreement_id,

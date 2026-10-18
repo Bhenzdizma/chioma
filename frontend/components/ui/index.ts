@@ -9,3 +9,4 @@ export { Tooltip } from './Tooltip';
 export { ConfirmDialog } from './ConfirmDialog';
 export { ToastProvider, notify } from './toast';
 export { PreviewImage } from './PreviewImage';
+export { Accordion, AccordionItem } from './Accordion';

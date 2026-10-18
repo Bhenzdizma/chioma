@@ -72,6 +72,10 @@ checks.md
 create-github-issues.sh
 /issues/frontend/storybook-static/
 
+# test and compiler outputs
+jest-output.log
+*.log
+tsc.log
 # terraform (issue #2019) — environment *.tfvars under infrastructure/environments are committed
 .terraform/
 *.tfstate

@@ -54,6 +54,30 @@ export const FewPages: Story = {
   render: () => <PaginationDemo initialPage={2} totalPages={5} />,
 };
 
+function FullFeaturedDemo() {
+  const totalItems = 487;
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const totalPages = Math.ceil(totalItems / pageSize);
+  return (
+    <Pagination
+      currentPage={page}
+      totalPages={totalPages}
+      onPageChange={setPage}
+      pageSize={pageSize}
+      onPageSizeChange={(size) => {
+        setPageSize(size);
+        setPage(1);
+      }}
+      showJumpToPage
+    />
+  );
+}
+
+export const WithPageSizeAndJump: Story = {
+  render: () => <FullFeaturedDemo />,
+};
+
 export const HiddenWhenSingle: Story = {
   render: () => (
     <p className="text-neutral-500">Pagination hidden (single page)</p>

@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, String};
+use soroban_sdk::{contracttype, String, Symbol};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -42,4 +42,8 @@ pub enum DataKey {
     ActiveUpgradeProposals,
     // Gas optimisation metrics (keyed by operation name string)
     GasMetrics(String),
+    // Per-function emergency pause (keyed by contract function name)
+    PausedFunction(Symbol),
+    // Storage layout version, bumped by `migrate` after a WASM upgrade
+    StorageVersion,
 }

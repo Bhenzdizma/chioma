@@ -264,7 +264,8 @@ fn test_create_agreement_success() {
     });
 
     let events = env.events().all();
-    assert_eq!(events.len(), 1);
+    // booking_created followed by agreement_created
+    assert_eq!(events.len(), 2);
     // Event structure: (contract_id, topics, data)
     // Topics now include: ["v1", "agr_created", tenant, landlord] (#1681
     // added the leading schema-version topic segment)

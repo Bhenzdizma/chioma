@@ -7,7 +7,7 @@
 //! @notice On-chain rental agreement lifecycle: create, sign, submit, cancel, and query agreements.
 //! Optimized for gas efficiency and security.
 
-use soroban_sdk::{contract, contractimpl, Address, Bytes, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, Address, Bytes, BytesN, Env, String, Symbol, Vec};
 
 mod agreement;
 mod deposit_interest;
@@ -92,6 +92,13 @@ pub use types::{
     RoyaltyPayment, SupportedToken, TimelockAction, TimelockActionType, TokenExchangeRate,
     UserCallCount, VersionStatus,
 };
+
+/// Storage layout version this WASM expects.
+///
+/// Bump this (and add a step to `Contract::migrate`) whenever a release
+/// changes how existing state is stored, so an upgraded contract can bring
+/// old data forward instead of losing it.
+pub const STORAGE_VERSION: u32 = 1;
 
 /// Chioma rental agreement contract.
 ///
@@ -200,6 +207,10 @@ impl Contract {
     }
 
     /// Propose a contract upgrade governed by multi-sig approvals and timelock.
+    ///
+    /// `wasm_hash` must be the 32-byte hash of WASM already uploaded to the
+    /// network (e.g. via `stellar contract upload`).
+    /// @custom:error InvalidInput If the proposal ID exists or the hash is not 32 bytes.
     pub fn propose_contract_upgrade(
         env: Env,
         proposer: Address,
@@ -210,6 +221,10 @@ impl Contract {
     ) -> Result<(), RentalError> {
         proposer.require_auth();
         multi_sig::require_admin(&env, &proposer)?;
+
+        if wasm_hash.len() != 32 {
+            return Err(RentalError::InvalidInput);
+        }
 
         if env
             .storage()
@@ -307,6 +322,14 @@ impl Contract {
     }
 
     /// Execute an approved upgrade proposal after ETA and record new version metadata.
+    ///
+    /// @notice Replaces this contract's WASM in place with the proposal's
+    ///         `wasm_hash` (`update_current_contract_wasm`). The contract
+    ///         address, balances, and all instance/persistent/temporary
+    ///         storage are preserved; the new code takes effect once this
+    ///         invocation completes. If the new release changes the storage
+    ///         layout, the admin then calls `migrate` on the upgraded contract.
+    /// @custom:error InvalidInput If the stored hash is not a valid 32-byte WASM hash.
     pub fn execute_contract_upgrade(
         env: Env,
         executor: Address,
@@ -334,6 +357,12 @@ impl Contract {
             return Err(RentalError::InsufficientApprovals);
         }
 
+        let new_wasm_hash: BytesN<32> = proposal
+            .wasm_hash
+            .clone()
+            .try_into()
+            .map_err(|_| RentalError::InvalidInput)?;
+
         proposal.executed = true;
         env.storage()
             .persistent()
@@ -360,9 +389,63 @@ impl Contract {
         new_version.updated_at = env.ledger().timestamp();
 
         Self::record_version(env.clone(), new_version)?;
-        events::upgrade_executed(&env, proposal_id);
+        events::upgrade_executed(&env, proposal_id.clone());
+
+        env.deployer()
+            .update_current_contract_wasm(new_wasm_hash.clone());
+        events::contract_upgraded(&env, proposal_id, new_wasm_hash);
 
         Ok(())
+    }
+
+    /// Get the storage layout version currently persisted by the contract.
+    ///
+    /// Contracts deployed before storage versioning existed report `0`.
+    pub fn get_storage_version(env: Env) -> u32 {
+        env.storage()
+            .instance()
+            .get(&DataKey::StorageVersion)
+            .unwrap_or(0)
+    }
+
+    /// Migrate persisted state to the storage layout expected by this WASM.
+    ///
+    /// @notice Admin-only. Call once after `execute_contract_upgrade` has
+    ///         installed a release whose `STORAGE_VERSION` is higher than the
+    ///         stored version. Runs each pending migration step in order and
+    ///         emits a `storage_migrated` event. Calling it when storage is
+    ///         already current is a no-op, so it is safe to retry.
+    /// @param env The Soroban environment.
+    /// @return The storage version after migration.
+    /// @custom:error InvalidState If the contract is not initialized, or the
+    ///         stored version is newer than this WASM (downgrade attempt).
+    pub fn migrate(env: Env) -> Result<u32, RentalError> {
+        let state = Self::get_state(env.clone()).ok_or(RentalError::InvalidState)?;
+        state.admin.require_auth();
+
+        let from_version = Self::get_storage_version(env.clone());
+        if from_version > STORAGE_VERSION {
+            return Err(RentalError::InvalidState);
+        }
+        if from_version == STORAGE_VERSION {
+            return Ok(from_version);
+        }
+
+        // Each future release that changes the storage layout bumps
+        // STORAGE_VERSION and rewrites existing state here, one step per
+        // version between `from_version` and STORAGE_VERSION.
+        //
+        // Version 0 -> 1 only introduces the StorageVersion key itself, so
+        // there is no data to rewrite yet.
+        let to_version = STORAGE_VERSION;
+
+        env.storage()
+            .instance()
+            .set(&DataKey::StorageVersion, &to_version);
+        env.storage().instance().extend_ttl(500000, 500000);
+
+        events::storage_migrated(&env, from_version, to_version);
+        Ok(to_version)
     }
 
     /// Get a contract upgrade proposal by ID.
@@ -440,6 +523,9 @@ impl Contract {
         };
 
         env.storage().instance().set(&DataKey::State, &state);
+        env.storage()
+            .instance()
+            .set(&DataKey::StorageVersion, &STORAGE_VERSION);
         env.storage().instance().extend_ttl(500000, 500000);
 
         if config.paused {
@@ -480,8 +566,16 @@ impl Contract {
         pause_state
     }
 
-    fn check_paused(env: &Env) -> Result<(), RentalError> {
+    /// Guard for state-changing entry points.
+    ///
+    /// Fails with `ContractPaused` when either the whole contract is paused
+    /// or the calling `function` has been paused individually via
+    /// `pause_function`.
+    fn check_paused(env: &Env, function: &str) -> Result<(), RentalError> {
         if Self::is_paused(env.clone()) {
+            return Err(RentalError::ContractPaused);
+        }
+        if Self::is_function_paused(env.clone(), Symbol::new(env, function)) {
             return Err(RentalError::ContractPaused);
         }
         Ok(())
@@ -609,6 +703,64 @@ impl Contract {
         false
     }
 
+    /// Pause a single contract function without halting the whole contract.
+    ///
+    /// @notice Admin-only emergency switch for one entry point (e.g.
+    ///         `make_payment_with_token`) while the rest of the contract keeps
+    ///         working. Calls to the paused function fail with
+    ///         `ContractPaused`. Emits a `function_paused` event.
+    /// @param env The Soroban environment.
+    /// @param function Name of the contract function to pause.
+    /// @param reason Human-readable reason, recorded in the event.
+    /// @custom:error InvalidState If the contract is not initialized.
+    /// @custom:error AlreadyPaused If the function is already paused.
+    pub fn pause_function(env: Env, function: Symbol, reason: String) -> Result<(), RentalError> {
+        let state = Self::get_state(env.clone()).ok_or(RentalError::InvalidState)?;
+        state.admin.require_auth();
+
+        let key = DataKey::PausedFunction(function.clone());
+        if env.storage().instance().has(&key) {
+            return Err(RentalError::AlreadyPaused);
+        }
+
+        env.storage().instance().set(&key, &reason);
+        env.storage().instance().extend_ttl(500000, 500000);
+
+        events::function_paused(&env, function, state.admin, reason);
+        Ok(())
+    }
+
+    /// Resume a function previously paused with `pause_function`.
+    ///
+    /// @notice Admin-only. Emits a `function_unpaused` event.
+    /// @param env The Soroban environment.
+    /// @param function Name of the contract function to resume.
+    /// @custom:error InvalidState If the contract is not initialized.
+    /// @custom:error NotPaused If the function is not paused.
+    pub fn unpause_function(env: Env, function: Symbol) -> Result<(), RentalError> {
+        let state = Self::get_state(env.clone()).ok_or(RentalError::InvalidState)?;
+        state.admin.require_auth();
+
+        let key = DataKey::PausedFunction(function.clone());
+        if !env.storage().instance().has(&key) {
+            return Err(RentalError::NotPaused);
+        }
+
+        env.storage().instance().remove(&key);
+
+        events::function_unpaused(&env, function, state.admin);
+        Ok(())
+    }
+
+    /// Check whether a specific function is individually paused.
+    ///
+    /// Does not reflect the global pause; see `is_paused` for that.
+    pub fn is_function_paused(env: Env, function: Symbol) -> bool {
+        env.storage()
+            .instance()
+            .has(&DataKey::PausedFunction(function))
+    }
+
     // --- Token Management Functions ---
 
     /// Add a token to the list of supported payment tokens.
@@ -632,7 +784,7 @@ impl Contract {
         min_amount: i128,
         max_amount: i128,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "add_supported_token")?;
         // Only admin can add tokens
         let state = Self::get_state(env.clone()).ok_or(RentalError::InvalidState)?;
         state.admin.require_auth();
@@ -657,7 +809,7 @@ impl Contract {
     /// @custom:error InvalidState If the contract has not been initialized.
     /// @custom:security Admin only: requires `admin.require_auth()`.
     pub fn remove_supported_token(env: Env, token_address: Address) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "remove_supported_token")?;
         let state = Self::get_state(env.clone()).ok_or(RentalError::InvalidState)?;
         state.admin.require_auth();
 
@@ -703,7 +855,7 @@ impl Contract {
         to_token: Address,
         rate: i128,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "set_exchange_rate")?;
         let state = Self::get_state(env.clone()).ok_or(RentalError::InvalidState)?;
         state.admin.require_auth();
 
@@ -739,7 +891,7 @@ impl Contract {
         env: Env,
         rates: Vec<(Address, Address, i128)>,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "update_exchange_rates")?;
         let state = Self::get_state(env.clone()).ok_or(RentalError::InvalidState)?;
         state.admin.require_auth();
 
@@ -787,7 +939,7 @@ impl Contract {
         env: Env,
         input: crate::types::AgreementInput,
     ) -> Result<String, RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "create_agreement_with_token")?;
         agreement::create_agreement_with_token(&env, input)
     }
 
@@ -824,7 +976,7 @@ impl Contract {
         amount: i128,
         token: Address,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "make_payment_with_token")?;
         agreement::make_payment_with_token(&env, agreement_id, amount, token)
     }
 
@@ -843,7 +995,7 @@ impl Contract {
         escrow_id: String,
         token: Address,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "release_escrow_with_token")?;
         agreement::release_escrow_with_token(&env, escrow_id, token)
     }
 
@@ -909,7 +1061,7 @@ impl Contract {
         env: Env,
         input: crate::types::AgreementInput,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "create_agreement")?;
         agreement::create_agreement(&env, input)
     }
 
@@ -926,7 +1078,7 @@ impl Contract {
         user: Address,
         agreement_id: String,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "sign_agreement")?;
         agreement::sign_agreement(&env, user, agreement_id)
     }
 
@@ -944,7 +1096,7 @@ impl Contract {
         approver: Address,
         agreement_id: String,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "approve_agreement")?;
         agreement::approve_agreement(&env, approver, agreement_id)
     }
 
@@ -960,7 +1112,7 @@ impl Contract {
         admin: Address,
         agreement_id: String,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "submit_agreement")?;
         agreement::submit_agreement(&env, admin, agreement_id)
     }
 
@@ -976,7 +1128,7 @@ impl Contract {
         caller: Address,
         agreement_id: String,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "cancel_agreement")?;
         agreement::cancel_agreement(&env, caller, agreement_id)
     }
 
@@ -1005,7 +1157,7 @@ impl Contract {
         new_rent: Option<i128>,
         new_deposit: Option<i128>,
     ) -> Result<String, RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "propose_extension")?;
         agreement::propose_extension(
             &env,
             caller,
@@ -1034,7 +1186,7 @@ impl Contract {
         caller: Address,
         extension_id: String,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "accept_extension")?;
         agreement::accept_extension(&env, caller, extension_id)
     }
 
@@ -1055,7 +1207,7 @@ impl Contract {
         extension_id: String,
         reason: String,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "reject_extension")?;
         agreement::reject_extension(&env, caller, extension_id, reason)
     }
 
@@ -1076,7 +1228,7 @@ impl Contract {
         caller: Address,
         extension_id: String,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "activate_extension")?;
         agreement::activate_extension(&env, caller, extension_id)
     }
 
@@ -1098,7 +1250,7 @@ impl Contract {
         extension_id: String,
         reason: String,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "cancel_extension")?;
         agreement::cancel_extension(&env, caller, extension_id, reason)
     }
 
@@ -1196,7 +1348,7 @@ impl Contract {
         metadata_uri: String,
         attributes: Vec<Attribute>,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "update_metadata")?;
         agreement::update_metadata(&env, agreement_id, metadata_uri, attributes)
     }
 
@@ -1212,7 +1364,7 @@ impl Contract {
         compounding_frequency: CompoundingFrequency,
         interest_recipient: InterestRecipient,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "set_deposit_interest_config")?;
         let state = Self::get_state(env.clone()).ok_or(RentalError::InvalidState)?;
         state.admin.require_auth();
         deposit_interest::set_deposit_interest_config(
@@ -1239,7 +1391,7 @@ impl Contract {
 
     /// Accrue interest up to the current ledger time and persist the update.
     pub fn accrue_interest(env: Env, escrow_id: String) -> Result<InterestAccrual, RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "accrue_interest")?;
         deposit_interest::accrue_interest(env, escrow_id)
     }
 
@@ -1261,13 +1413,13 @@ impl Contract {
 
     /// Distribute all accrued interest to tenant / landlord per configuration.
     pub fn distribute_interest(env: Env, escrow_id: String) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "distribute_interest")?;
         deposit_interest::distribute_interest(env, escrow_id)
     }
 
     /// (Keeper / oracle entry-point) Accrue interest for all deposits.
     pub fn process_interest_accruals(env: Env) -> Result<Vec<String>, RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "process_interest_accruals")?;
         deposit_interest::process_interest_accruals(env)
     }
 
@@ -1295,7 +1447,7 @@ impl Contract {
         royalty_percentage: u32,
         royalty_recipient: Address,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "set_royalty")?;
         royalties::set_royalty(env, token_id, royalty_percentage, royalty_recipient)
     }
 
@@ -1320,7 +1472,7 @@ impl Contract {
         to: Address,
         sale_price: i128,
     ) -> Result<(), RentalError> {
-        Self::check_paused(&env)?;
+        Self::check_paused(&env, "transfer_with_royalty")?;
         royalties::transfer_with_royalty(env, token_id, to, sale_price)
     }
 

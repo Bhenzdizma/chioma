@@ -448,6 +448,14 @@ impl Contract {
         Ok(to_version)
     }
 
+    /// Get a contract upgrade proposal by ID.
+    ///
+    /// @notice Read-only lookup of a proposal created via `propose_contract_upgrade`.
+    /// @param env The Soroban environment.
+    /// @param proposal_id Identifier of the upgrade proposal.
+    /// @return The stored `ContractUpgradeProposal`.
+    /// @custom:error ProposalNotFound If no proposal exists with this ID.
+    /// @custom:security Read-only; no authorization required.
     pub fn get_upgrade_proposal(
         env: Env,
         proposal_id: String,
@@ -458,6 +466,12 @@ impl Contract {
             .ok_or(RentalError::ProposalNotFound)
     }
 
+    /// List the IDs of all upgrade proposals that have not yet been executed.
+    ///
+    /// @notice Read-only; executed proposals are removed from this list.
+    /// @param env The Soroban environment.
+    /// @return Vector of active proposal IDs (empty if none).
+    /// @custom:security Read-only; no authorization required.
     pub fn get_active_upgrade_proposals(env: Env) -> Vec<String> {
         env.storage()
             .instance()
@@ -465,6 +479,11 @@ impl Contract {
             .unwrap_or(Vec::new(&env))
     }
 
+    /// Get the total number of upgrade proposals ever created.
+    ///
+    /// @param env The Soroban environment.
+    /// @return Proposal count (0 if none).
+    /// @custom:security Read-only; no authorization required.
     pub fn get_upgrade_proposal_count(env: Env) -> u32 {
         env.storage()
             .instance()
@@ -601,6 +620,16 @@ impl Contract {
         Ok(())
     }
 
+    /// Pause the contract (emergency stop).
+    ///
+    /// @notice Blocks every entry point guarded by `check_paused` until `unpause`
+    ///         is called. Emits a `paused` event.
+    /// @param env The Soroban environment.
+    /// @param reason Human-readable reason recorded in the pause state and event.
+    /// @return Ok(()) on success.
+    /// @custom:error InvalidState If the contract has not been initialized.
+    /// @custom:error AlreadyPaused If the contract is already paused.
+    /// @custom:security Admin only: requires `admin.require_auth()`.
     pub fn pause(env: Env, reason: String) -> Result<(), RentalError> {
         let mut state = Self::get_state(env.clone()).ok_or(RentalError::InvalidState)?;
 
@@ -622,6 +651,14 @@ impl Contract {
         Ok(())
     }
 
+    /// Unpause the contract, restoring all guarded entry points.
+    ///
+    /// @notice Clears the pause state and emits an `unpaused` event.
+    /// @param env The Soroban environment.
+    /// @return Ok(()) on success.
+    /// @custom:error InvalidState If the contract has not been initialized.
+    /// @custom:error NotPaused If the contract is not currently paused.
+    /// @custom:security Admin only: requires `admin.require_auth()`.
     pub fn unpause(env: Env) -> Result<(), RentalError> {
         let mut state = Self::get_state(env.clone()).ok_or(RentalError::InvalidState)?;
 
@@ -643,6 +680,13 @@ impl Contract {
         Ok(())
     }
 
+    /// Whether the contract is currently paused.
+    ///
+    /// @notice Checks the dedicated pause state first, then falls back to
+    ///         `config.paused`.
+    /// @param env The Soroban environment.
+    /// @return `true` if paused, otherwise `false` (also `false` before initialization).
+    /// @custom:security Read-only; no authorization required.
     pub fn is_paused(env: Env) -> bool {
         if let Some(pause_state) = env
             .storage()
@@ -719,6 +763,19 @@ impl Contract {
 
     // --- Token Management Functions ---
 
+    /// Add a token to the list of supported payment tokens.
+    ///
+    /// @notice Emits a `token_added` event.
+    /// @param env The Soroban environment.
+    /// @param token_address Address of the token contract.
+    /// @param symbol Display symbol of the token.
+    /// @param decimals Number of decimals the token uses.
+    /// @param min_amount Minimum accepted payment amount in this token.
+    /// @param max_amount Maximum accepted payment amount in this token.
+    /// @return Ok(()) on success.
+    /// @custom:error ContractPaused If the contract is paused.
+    /// @custom:error InvalidState If the contract has not been initialized.
+    /// @custom:security Admin only: requires `admin.require_auth()`.
     pub fn add_supported_token(
         env: Env,
         token_address: Address,
@@ -742,6 +799,15 @@ impl Contract {
         )
     }
 
+    /// Remove a token from the list of supported payment tokens.
+    ///
+    /// @notice Emits a `token_removed` event.
+    /// @param env The Soroban environment.
+    /// @param token_address Address of the token contract to remove.
+    /// @return Ok(()) on success.
+    /// @custom:error ContractPaused If the contract is paused.
+    /// @custom:error InvalidState If the contract has not been initialized.
+    /// @custom:security Admin only: requires `admin.require_auth()`.
     pub fn remove_supported_token(env: Env, token_address: Address) -> Result<(), RentalError> {
         Self::check_paused(&env, "remove_supported_token")?;
         let state = Self::get_state(env.clone()).ok_or(RentalError::InvalidState)?;
@@ -750,16 +816,39 @@ impl Contract {
         multi_token::remove_supported_token(env, token_address)
     }
 
+    /// List all supported payment tokens.
+    ///
+    /// @param env The Soroban environment.
+    /// @return Vector of `SupportedToken` entries.
+    /// @custom:security Read-only; no authorization required.
     pub fn get_supported_tokens(env: Env) -> Result<Vec<SupportedToken>, RentalError> {
         multi_token::get_supported_tokens(env)
     }
 
+    /// Whether a token is accepted for payments.
+    ///
+    /// @param env The Soroban environment.
+    /// @param token_address Address of the token contract.
+    /// @return `true` if the token is supported.
+    /// @custom:security Read-only; no authorization required.
     pub fn is_token_supported(env: Env, token_address: Address) -> Result<bool, RentalError> {
         multi_token::is_token_supported(env, token_address)
     }
 
     // --- Exchange Rate Functions ---
 
+    /// Set the exchange rate between two tokens.
+    ///
+    /// @notice Rates are fixed-point with 18 decimals (1e18 == 1:1).
+    ///         Emits an `exchange_rate_updated` event.
+    /// @param env The Soroban environment.
+    /// @param from_token Source token address.
+    /// @param to_token Destination token address.
+    /// @param rate Exchange rate scaled by 1e18.
+    /// @return Ok(()) on success.
+    /// @custom:error ContractPaused If the contract is paused.
+    /// @custom:error InvalidState If the contract has not been initialized.
+    /// @custom:security Admin only: requires `admin.require_auth()`.
     pub fn set_exchange_rate(
         env: Env,
         from_token: Address,
@@ -773,6 +862,13 @@ impl Contract {
         multi_token::set_exchange_rate(env, from_token, to_token, rate)
     }
 
+    /// Get the exchange rate between two tokens.
+    ///
+    /// @param env The Soroban environment.
+    /// @param from_token Source token address.
+    /// @param to_token Destination token address.
+    /// @return Exchange rate scaled by 1e18.
+    /// @custom:security Read-only; no authorization required.
     pub fn get_exchange_rate(
         env: Env,
         from_token: Address,
@@ -781,6 +877,16 @@ impl Contract {
         multi_token::get_exchange_rate(env, from_token, to_token)
     }
 
+    /// Set several exchange rates in a single call.
+    ///
+    /// @notice Applies each `(from, to, rate)` tuple in order; the whole call
+    ///         reverts if any single update fails.
+    /// @param env The Soroban environment.
+    /// @param rates Vector of `(from_token, to_token, rate)` tuples, rates scaled by 1e18.
+    /// @return Ok(()) on success.
+    /// @custom:error ContractPaused If the contract is paused.
+    /// @custom:error InvalidState If the contract has not been initialized.
+    /// @custom:security Admin only: requires `admin.require_auth()`.
     pub fn update_exchange_rates(
         env: Env,
         rates: Vec<(Address, Address, i128)>,
@@ -795,6 +901,17 @@ impl Contract {
         Ok(())
     }
 
+    /// Convert an amount from one token to another using the stored rate.
+    ///
+    /// @notice Returns `amount` unchanged when both tokens are the same.
+    /// @param env The Soroban environment.
+    /// @param from_token Source token address.
+    /// @param to_token Destination token address.
+    /// @param amount Amount denominated in `from_token`.
+    /// @return Converted amount denominated in `to_token`.
+    /// @custom:error ConversionError If the multiplication overflows.
+    /// @custom:security Read-only; no authorization required. Uses checked
+    ///         multiplication to avoid overflow.
     pub fn convert_amount(
         env: Env,
         from_token: Address,
@@ -806,6 +923,18 @@ impl Contract {
 
     // --- Agreement Functions with Token ---
 
+    /// Create a rental agreement that is paid in a specific supported token.
+    ///
+    /// @notice Same as `create_agreement`, but first checks that
+    ///         `input.payment_token` is supported and records it under
+    ///         `AgreementToken`. Emits `booking_created` and `agreement_created` events.
+    /// @param env The Soroban environment.
+    /// @param input Agreement parameters (parties, terms, payment token, metadata).
+    /// @return The ID of the created agreement.
+    /// @custom:error ContractPaused If the contract is paused.
+    /// @custom:error TokenNotSupported If the payment token is not supported.
+    /// @custom:error AgreementAlreadyExists If the agreement ID is already used.
+    /// @custom:security Requires authorization from the tenant (`input.user`).
     pub fn create_agreement_with_token(
         env: Env,
         input: crate::types::AgreementInput,
@@ -814,12 +943,33 @@ impl Contract {
         agreement::create_agreement_with_token(&env, input)
     }
 
+    /// Get the payment token recorded for an agreement.
+    ///
+    /// @param env The Soroban environment.
+    /// @param agreement_id Identifier of the agreement.
+    /// @return Address of the payment token.
+    /// @custom:error AgreementNotFound If no token is recorded for the agreement.
+    /// @custom:security Read-only; no authorization required.
     pub fn get_agreement_token(env: Env, agreement_id: String) -> Result<Address, RentalError> {
         agreement::get_agreement_token(&env, agreement_id)
     }
 
     // --- Payment Functions with Token ---
 
+    /// Pay rent for an agreement using a specific token.
+    ///
+    /// @notice Converts the amount to the agreement's token when needed, moves the
+    ///         funds into contract escrow and emits a `payment_made_with_token` event.
+    /// @param env The Soroban environment.
+    /// @param agreement_id Identifier of the agreement.
+    /// @param amount Amount to pay, denominated in `token`.
+    /// @param token Address of the token used for payment.
+    /// @return Ok(()) on success.
+    /// @custom:error ContractPaused If the contract is paused.
+    /// @custom:error AgreementNotFound If the agreement does not exist.
+    /// @custom:error AgreementNotActive If the agreement is not active.
+    /// @custom:error InsufficientPayment If the converted amount is below the rent due.
+    /// @custom:security Requires authorization from the agreement's tenant.
     pub fn make_payment_with_token(
         env: Env,
         agreement_id: String,
@@ -830,6 +980,16 @@ impl Contract {
         agreement::make_payment_with_token(&env, agreement_id, amount, token)
     }
 
+    /// Release escrowed funds for an agreement in the given token.
+    ///
+    /// @notice Emits an `escrow_released_with_token` event.
+    /// @param env The Soroban environment.
+    /// @param escrow_id Identifier of the escrow (agreement ID).
+    /// @param token Address of the token held in escrow.
+    /// @return Ok(()) on success.
+    /// @custom:error ContractPaused If the contract is paused.
+    /// @custom:error InvalidState If the escrow cannot be released.
+    /// @custom:security Requires authorization from the agreement's landlord.
     pub fn release_escrow_with_token(
         env: Env,
         escrow_id: String,
@@ -883,6 +1043,7 @@ impl Contract {
     /// Create a new rental agreement.
     ///
     /// @notice Creates a draft agreement. Tenant must authorize. Reverts if contract is paused.
+    ///         Emits `booking_created` and `agreement_created` events.
     /// @param env The Soroban environment.
     /// @param agreement_id Unique identifier for the agreement.
     /// @param landlord Address of the property owner.
@@ -971,6 +1132,23 @@ impl Contract {
         agreement::cancel_agreement(&env, caller, agreement_id)
     }
 
+    /// Propose extending an existing agreement.
+    ///
+    /// @notice Creates an extension starting at the agreement's current end date.
+    ///         Rent and deposit may optionally be changed. Emits an
+    ///         `extension_proposed` event.
+    /// @param env The Soroban environment.
+    /// @param caller Landlord or tenant proposing the extension.
+    /// @param agreement_id Identifier of the agreement to extend.
+    /// @param extension_months Number of months to extend by (must be > 0).
+    /// @param new_rent Optional new monthly rent for the extension period.
+    /// @param new_deposit Optional new security deposit for the extension period.
+    /// @return The ID of the new extension proposal.
+    /// @custom:error ContractPaused If the contract is paused.
+    /// @custom:error AgreementNotFound If the agreement does not exist.
+    /// @custom:error Unauthorized If the caller is neither landlord nor tenant.
+    /// @custom:error InvalidInput If `extension_months` is 0.
+    /// @custom:security Requires `caller.require_auth()`; caller must be a party to the agreement.
     pub fn propose_extension(
         env: Env,
         caller: Address,
@@ -990,6 +1168,19 @@ impl Contract {
         )
     }
 
+    /// Accept a proposed agreement extension.
+    ///
+    /// @notice Records the caller's acceptance. Once both landlord and tenant have
+    ///         accepted, the extension moves to Accepted and an
+    ///         `extension_accepted` event is emitted.
+    /// @param env The Soroban environment.
+    /// @param caller Landlord or tenant accepting the extension.
+    /// @param extension_id Identifier of the extension.
+    /// @return Ok(()) on success.
+    /// @custom:error ContractPaused If the contract is paused.
+    /// @custom:error InvalidState If the extension is not in Proposed state.
+    /// @custom:error Unauthorized If the caller is neither landlord nor tenant.
+    /// @custom:security Requires `caller.require_auth()`; caller must be a party to the agreement.
     pub fn accept_extension(
         env: Env,
         caller: Address,
@@ -999,6 +1190,17 @@ impl Contract {
         agreement::accept_extension(&env, caller, extension_id)
     }
 
+    /// Reject a proposed agreement extension.
+    ///
+    /// @notice Moves the extension to Rejected and emits an `extension_rejected` event.
+    /// @param env The Soroban environment.
+    /// @param caller Landlord or tenant rejecting the extension.
+    /// @param extension_id Identifier of the extension.
+    /// @param reason Human-readable rejection reason.
+    /// @return Ok(()) on success.
+    /// @custom:error ContractPaused If the contract is paused.
+    /// @custom:error Unauthorized If the caller is neither landlord nor tenant.
+    /// @custom:security Requires `caller.require_auth()`; caller must be a party to the agreement.
     pub fn reject_extension(
         env: Env,
         caller: Address,
@@ -1009,6 +1211,18 @@ impl Contract {
         agreement::reject_extension(&env, caller, extension_id, reason)
     }
 
+    /// Activate an accepted extension, applying its terms to the agreement.
+    ///
+    /// @notice Updates the agreement's end date, rent and deposit, then emits an
+    ///         `extension_activated` event.
+    /// @param env The Soroban environment.
+    /// @param caller Landlord of the agreement.
+    /// @param extension_id Identifier of the extension.
+    /// @return Ok(()) on success.
+    /// @custom:error ContractPaused If the contract is paused.
+    /// @custom:error InvalidState If the extension is not in Accepted state.
+    /// @custom:error Unauthorized If the caller is not the landlord.
+    /// @custom:security Requires `caller.require_auth()`; landlord only.
     pub fn activate_extension(
         env: Env,
         caller: Address,
@@ -1018,6 +1232,18 @@ impl Contract {
         agreement::activate_extension(&env, caller, extension_id)
     }
 
+    /// Cancel an extension that is not yet completed.
+    ///
+    /// @notice Moves the extension to Cancelled and emits an `extension_cancelled` event.
+    /// @param env The Soroban environment.
+    /// @param caller Landlord or tenant cancelling the extension.
+    /// @param extension_id Identifier of the extension.
+    /// @param reason Human-readable cancellation reason.
+    /// @return Ok(()) on success.
+    /// @custom:error ContractPaused If the contract is paused.
+    /// @custom:error Unauthorized If the caller is neither landlord nor tenant.
+    /// @custom:error InvalidState If the extension is already completed or cancelled.
+    /// @custom:security Requires `caller.require_auth()`; caller must be a party to the agreement.
     pub fn cancel_extension(
         env: Env,
         caller: Address,
@@ -1028,6 +1254,13 @@ impl Contract {
         agreement::cancel_extension(&env, caller, extension_id, reason)
     }
 
+    /// Get an agreement extension by ID.
+    ///
+    /// @param env The Soroban environment.
+    /// @param extension_id Identifier of the extension.
+    /// @return The stored `AgreementExtension`.
+    /// @custom:error AgreementNotFound If the extension does not exist.
+    /// @custom:security Read-only; no authorization required.
     pub fn get_extension(
         env: Env,
         extension_id: String,
@@ -1035,6 +1268,12 @@ impl Contract {
         agreement::get_extension(&env, extension_id)
     }
 
+    /// Get the extension history of an agreement.
+    ///
+    /// @param env The Soroban environment.
+    /// @param agreement_id Identifier of the agreement.
+    /// @return The agreement's `ExtensionHistory`.
+    /// @custom:security Read-only; no authorization required.
     pub fn get_extension_history(
         env: Env,
         agreement_id: String,
@@ -1042,6 +1281,13 @@ impl Contract {
         agreement::get_extension_history(&env, agreement_id)
     }
 
+    /// Get the current end date of an agreement, including activated extensions.
+    ///
+    /// @param env The Soroban environment.
+    /// @param agreement_id Identifier of the agreement.
+    /// @return End date as a Unix timestamp.
+    /// @custom:error AgreementNotFound If the agreement does not exist.
+    /// @custom:security Read-only; no authorization required.
     pub fn get_current_agreement_end(env: Env, agreement_id: String) -> Result<u64, RentalError> {
         agreement::get_current_agreement_end(&env, agreement_id)
     }

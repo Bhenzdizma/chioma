@@ -28,6 +28,19 @@ pub struct AgreementCreated {
     pub agent: Option<Address>,
 }
 
+/// Event emitted when a booking (a new rental agreement) is created
+/// Topics: ["booking_created", tenant: Address, landlord: Address]
+#[contractevent(topics = ["v1", "booking_created"])]
+pub struct BookingCreated {
+    #[topic]
+    pub tenant: Address,
+    #[topic]
+    pub landlord: Address,
+    pub booking_id: String,
+    pub start_date: u64,
+    pub end_date: u64,
+}
+
 /// Event emitted when an agreement is signed
 /// Topics: ["agreement_signed", user: Address, admin: Address]
 #[contractevent(topics = ["v1", "agreement_signed"])]
@@ -508,6 +521,25 @@ pub(crate) fn agreement_created(
         start_date,
         end_date,
         agent,
+    }
+    .publish(env);
+}
+
+/// Helper function to emit booking created event
+pub(crate) fn booking_created(
+    env: &Env,
+    booking_id: String,
+    tenant: Address,
+    landlord: Address,
+    start_date: u64,
+    end_date: u64,
+) {
+    BookingCreated {
+        tenant,
+        landlord,
+        booking_id,
+        start_date,
+        end_date,
     }
     .publish(env);
 }

@@ -9,6 +9,7 @@ import {
 import { Response, Request } from 'express';
 import { EntityNotFoundError, QueryFailedError } from 'typeorm';
 import * as Sentry from '@sentry/nestjs';
+import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { BaseAppError } from '../errors/base.error';
 import { ErrorCode } from '../errors/error-codes';
 import { RateLimitError } from '../errors/domain-errors';
@@ -59,6 +60,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
         exception instanceof Error ? exception.stack : String(exception),
         JSON.stringify(logContext),
       );
+
+      // Mark the active trace span as failed so the APM (Datadog/New Relic
+      // via OTLP) attributes the error to the request trace.
+      const span = trace.getActiveSpan();
+      if (span) {
+        if (exception instanceof Error) span.recordException(exception);
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: exception instanceof Error ? exception.message : undefined,
+        });
+      }
 
       // Report to Sentry if it's a server error
       Sentry.captureException(exception, {

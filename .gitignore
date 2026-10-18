@@ -71,3 +71,20 @@ pr.md
 checks.md
 create-github-issues.sh
 /issues/frontend/storybook-static/
+
+# terraform (issue #2019) — environment *.tfvars under infrastructure/environments are committed
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+terraform.tfvars
+*.auto.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
